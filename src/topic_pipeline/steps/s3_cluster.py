@@ -70,6 +70,9 @@ def run(cfg: dict) -> None:
     force_retrain = cluster_cfg.get("force_retrain", False)
     reassign_outliers = cluster_cfg.get("reassign_outliers", False)
     stop_words = resolve_stop_words(cfg)
+    seed_topic_list = cluster_cfg.get("seed_topic_list")
+    if seed_topic_list:
+        print(f"[s3] guided: {len(seed_topic_list)} seed 토픽")
     sweep_cfg = cluster_cfg.get("sweep", {}) or {}
     cutoff_cfg = sweep_cfg.get("cutoff", {}) or {}
 
@@ -113,7 +116,7 @@ def run(cfg: dict) -> None:
     sweep_results = []
     for i, mts in enumerate(grid, 1):
         print(f"\n[s3] ({i}/{len(grid)}) fit mts={mts} ...")
-        model, topics = _train_one(docs, embeddings, umap_embeddings, mts, reassign_outliers, stop_words)
+        model, topics = _train_one(docs, embeddings, umap_embeddings, mts, reassign_outliers, stop_words, seed_topic_list)
         metrics = _measure_metrics(topics, umap_embeddings)
         passed, reasons = (True, []) if skip_sweep else _check_cutoff(metrics, cutoff_cfg)
         sweep_results.append({
@@ -226,7 +229,8 @@ def _select_mts(sweep_results: list[dict], cluster_cfg: dict) -> int:
 
 # ── 단일 학습 ──────────────────────────────────────────────────
 
-def _train_one(docs, embeddings, umap_reduced, mts, reassign_outliers, stop_words="english"):
+def _train_one(docs, embeddings, umap_reduced, mts, reassign_outliers, stop_words="english",
+               seed_topic_list=None):
     from bertopic import BERTopic
     from sklearn.feature_extraction.text import CountVectorizer
 
@@ -235,6 +239,7 @@ def _train_one(docs, embeddings, umap_reduced, mts, reassign_outliers, stop_word
         umap_model=IdentityReducer(umap_reduced),
         vectorizer_model=vectorizer,
         min_topic_size=mts,
+        seed_topic_list=seed_topic_list,
         verbose=False,
     )
     topics, _ = topic_model.fit_transform(docs, embeddings=embeddings)

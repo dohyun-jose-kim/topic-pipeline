@@ -52,6 +52,9 @@ cluster:
   umap_n_components: 2          # UMAP 투영 차원. 기본 2D. 5D 로 바꾸려면 --umap-dim 5 또는 여기 5 로.
   seed: 42
   reassign_outliers: false
+  # seed_topic_list:        # guided 모델링(BERTopic): 토픽별 시드 단어 리스트의 리스트 (미설정=비지도, 기본)
+  #   - [keyword_a, keyword_b]
+  #   - [keyword_c, keyword_d]
   sweep:
     tie_break: median_low   # 'median_low'(기본, 현행) | 'target'(target_n_topics 에 가장 가까운 토픽수)
     target_n_topics: 10     # tie_break='target' 일 때 목표 토픽 수 (KNOWN_LIMITATION #4)
