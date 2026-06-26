@@ -88,11 +88,12 @@ def _load_all_convention(output_dir: Path, embed_model_name: str):
     topic_model = _load_bertopic(model_dir, embed_model_name)
 
     merged = load_labeled_convention(output_dir)
-    # 내부 로직이 abstract_clean / mesh_terms_v2 컬럼을 기대 → rename
-    labeled_df = merged.rename(columns={
-        "abstract": "abstract_clean",
-        "mesh_terms": "mesh_terms_v2",
-    })
+    # 내부 로직이 abstract_clean / mesh_terms_v2 컬럼을 기대 → rename.
+    # s0 전처리로 이미 abstract_clean 이 있으면 충돌 방지 위해 abstract 는 rename 안 함(그것을 사용).
+    rename_map = {"mesh_terms": "mesh_terms_v2"}
+    if "abstract_clean" not in merged.columns:
+        rename_map["abstract"] = "abstract_clean"
+    labeled_df = merged.rename(columns=rename_map)
     kw_df = labeled_df  # 동일 df — author_keywords + mesh_terms_v2 둘 다 포함
 
     docs = labeled_df["abstract_clean"].fillna("").tolist()

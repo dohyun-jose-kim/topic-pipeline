@@ -25,7 +25,8 @@ def run(cfg: dict) -> None:
     output_dir = Path(cfg["paths"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    meta_csv = output_dir / "s1_meta.csv"
+    clean_csv = output_dir / "s0_meta_clean.csv"
+    meta_csv = clean_csv if clean_csv.exists() else output_dir / "s1_meta.csv"
     cache_npy = output_dir / "s2_embeddings.npy"
     filtered_meta_csv = output_dir / "s2_meta_for_embed.csv"
 
@@ -36,15 +37,17 @@ def run(cfg: dict) -> None:
               f"모델을 바꿨다면 s2_embeddings.npy 삭제 또는 embed.cache=false 권장 (캐시는 shape 만 비교)")
 
     df = pd.read_csv(meta_csv)
-    print(f"[s2] {len(df)} 행 로드 ← {meta_csv}")
+    # s0_meta_clean(abstract_clean) 있으면 우선, 없으면 raw abstract (기본 byte-identical)
+    text_col = "abstract_clean" if "abstract_clean" in df.columns else "abstract"
+    print(f"[s2] {len(df)} 행 로드 ← {meta_csv} (text={text_col})")
 
-    # abstract 비어있는 행 drop (S3 클러스터 라벨 정합성 위해 meta 재저장)
-    df = df.dropna(subset=["abstract"]).reset_index(drop=True)
-    df = df[df["abstract"].astype(str).str.strip() != ""].reset_index(drop=True)
-    print(f"[s2] abstract 비어있는 행 제거 후 {len(df)} 행")
+    # 텍스트 비어있는 행 drop (S3 클러스터 라벨 정합성 위해 meta 재저장; abstract 컬럼은 보존)
+    df = df.dropna(subset=[text_col]).reset_index(drop=True)
+    df = df[df[text_col].astype(str).str.strip() != ""].reset_index(drop=True)
+    print(f"[s2] 빈 {text_col} 행 제거 후 {len(df)} 행")
     df.to_csv(filtered_meta_csv, index=False, encoding="utf-8-sig")
 
-    docs = df["abstract"].astype(str).tolist()
+    docs = df[text_col].astype(str).tolist()
 
     if use_cache and cache_npy.exists():
         cached = np.load(cache_npy)

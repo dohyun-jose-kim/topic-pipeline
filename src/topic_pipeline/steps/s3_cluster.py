@@ -75,7 +75,8 @@ def run(cfg: dict) -> None:
 
     embeddings = np.load(output_dir / "s2_embeddings.npy")
     meta_df = pd.read_csv(output_dir / "s2_meta_for_embed.csv")
-    docs = meta_df["abstract"].astype(str).tolist()
+    text_col = "abstract_clean" if "abstract_clean" in meta_df.columns else "abstract"
+    docs = meta_df[text_col].astype(str).tolist()
     N = len(docs)
     print(f"[s3] 입력: embeddings {embeddings.shape}, docs {N}")
 
