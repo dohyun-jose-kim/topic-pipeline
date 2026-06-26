@@ -133,6 +133,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--preset", metavar="P",
         help="--init 프리셋 (biomedical | general; 기본 general=무키·CSV)",
     )
+    parser.add_argument(
+        "--serve", action="store_true",
+        help="output_dir 를 정적 서빙(127.0.0.1, logs/ 차단) — s7_report.html / s7_results.json",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8000, metavar="N",
+        help="--serve 포트 (default 8000)",
+    )
 
     # ── domain (도메인 바꿀 때) ─────────────────────────
     g_dom = parser.add_argument_group("domain")
@@ -294,6 +302,41 @@ def _init(name: str, preset: str | None) -> int:
     return 0
 
 
+def _serve_blocked(path: str) -> bool:
+    """serve 시 차단할 경로 (logs/ — DEBUG 로그 노출 방지, 시크릿 가드레일)."""
+    p = path.split("?", 1)[0].lstrip("/")
+    return p == "logs" or p.startswith("logs/")
+
+
+def _serve(output_dir: Path, port: int) -> int:
+    """output_dir 를 stdlib http.server 로 정적 서빙(127.0.0.1). opt-in, 파이프라인 외 affordance."""
+    import functools
+    import http.server
+    import socketserver
+
+    directory = str(output_dir)
+    if not Path(directory).is_dir():
+        print(f"[serve] output_dir 없음: {directory} — 먼저 파이프라인 실행", file=sys.stderr)
+        return 1
+
+    class _Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            if _serve_blocked(self.path):
+                self.send_error(403, "logs 접근 차단")
+                return
+            return super().do_GET()
+
+    handler = functools.partial(_Handler, directory=directory)
+    with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:
+        print(f"[serve] http://127.0.0.1:{port}/  (root={directory}; report.html / results.json, logs/ 차단)")
+        print("[serve] Ctrl-C 로 종료.")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n[serve] 종료")
+    return 0
+
+
 def _print_steps() -> None:
     """step 목록 + 모듈 + 필요/생성 산출물."""
     print("topic-pipeline steps (실행 순서):")
@@ -336,6 +379,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.init:
         return _init(args.init, args.preset)
+
+    if args.serve:
+        cfg = _apply_overrides(_load_cfg(args.config), args)
+        return _serve(_resolve_output_dir(cfg), args.port)
 
     selected = _select_steps(args)
     if not selected:

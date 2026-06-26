@@ -76,3 +76,18 @@ def test_validate_range_satisfied_by_earlier_selected(tmp_path):
     # embed→cluster 연속 실행: cluster 입력(s2_*)은 embed 가 만드므로, s1_meta.csv 만 있으면 통과
     (tmp_path / "s1_meta.csv").write_text("x")
     assert cli._validate_preconditions(["embed", "cluster"], tmp_path, None) == []
+
+
+# ── serve (issue #7) ──
+
+def test_serve_blocked_logs():
+    assert cli._serve_blocked("/logs/run.log")
+    assert cli._serve_blocked("logs/")
+    assert cli._serve_blocked("/logs")
+    assert not cli._serve_blocked("/s7_report.html")
+    assert not cli._serve_blocked("/s7_results.json")
+
+
+def test_serve_missing_dir_returns_1(tmp_path):
+    # 디렉토리 없으면 서버 기동 없이 1 반환 (블로킹 X)
+    assert cli._serve(tmp_path / "nope", 8123) == 1

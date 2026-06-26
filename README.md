@@ -74,6 +74,7 @@ topic-pipeline --init my_proj --preset general   # <my_proj>.yaml 스캐폴딩 (
 topic-pipeline --list-steps                # step별 모듈·필요/생성 산출물 출력
 topic-pipeline --from cluster --to label   # 범위 실행 (positional 미지정 시)
 topic-pipeline --run-id exp1               # outputs/exp1/ 로 격리 (동시·다도메인 실행 안전)
+topic-pipeline --serve --port 8000         # outputs/ 정적 서빙 (report.html·results.json; 127.0.0.1, logs/ 차단)
 ```
 
 **새 도메인**
