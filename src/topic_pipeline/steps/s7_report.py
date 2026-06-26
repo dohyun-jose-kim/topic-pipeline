@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.offline import get_plotlyjs
 
 from ..shared.colors import (
     build_color_map,
@@ -486,7 +487,7 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
 
     chart_umap_original = _make_plotly_umap(
         umap_2d, df, tab20_map, name_map, unique_labels,
-        title="UMAP + HDBSCAN Clustering (원본)", include_plotlyjs=True,
+        title="UMAP + HDBSCAN Clustering (원본)",
     )
     chart_umap_relevance = _make_plotly_umap(
         umap_2d, df, color_map, name_map, topic_order,
@@ -709,4 +710,6 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
 </div>
 """
 
-    return render_page("Topic Modeling — 종합 리포트", body)
+    # plotly.js 번들을 head 에 1회 주입 → 차트 fragment 는 모두 include_plotlyjs=False (순서 무관).
+    plotly_head = f"<script>{get_plotlyjs()}</script>"
+    return render_page("Topic Modeling — 종합 리포트", body, head_extra=plotly_head)
