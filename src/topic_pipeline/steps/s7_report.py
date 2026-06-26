@@ -38,7 +38,7 @@ from ..shared.colors import (
 )
 from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
-from ..shared.html_common import CSS
+from ..shared.html_common import render_page
 from ..shared.relevance import parse_relevance_order
 
 
@@ -709,16 +709,4 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
 </div>
 """
 
-    return f"""<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>Topic Modeling — 종합 리포트</title>
-<style>
-{CSS}</style>
-</head>
-<body>
-{body}
-</body>
-</html>
-"""
+    return render_page("Topic Modeling — 종합 리포트", body)
