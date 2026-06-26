@@ -26,6 +26,20 @@ def test_parse_relevance_table():
     assert [r["topic"] for r in rows] == relevance.parse_relevance_order(FIXTURE)
 
 
+def test_parse_relevance_table_text_comma_doc_count():
+    # invariant#3: s7 §6 와 s5_topic_order.json 이 공유하는 단일 파서가 천단위 콤마 doc_count 를 안전 처리
+    md = (
+        "| rank | topic | label | doc_count | rationale |\n"
+        "|---|---|---|---|---|\n"
+        "| 1 | 5 | A | 1,250 | r1 |\n"
+        "| 2 | 4 | B | 980 | r2 |\n"
+    )
+    rows = relevance.parse_relevance_table_text(md)
+    assert len(rows) == 2
+    assert rows[0]["doc_count"] == 1250
+    assert [r["topic"] for r in rows] == [5, 4]
+
+
 def test_write_topic_order_json(tmp_path):
     import json
 

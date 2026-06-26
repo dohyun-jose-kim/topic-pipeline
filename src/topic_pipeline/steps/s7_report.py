@@ -22,7 +22,6 @@ from __future__ import annotations
 import base64
 import json
 import os
-import re
 from pathlib import Path
 from textwrap import wrap
 
@@ -41,7 +40,7 @@ from ..shared.colors import (
 from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.html_common import render_page
-from ..shared.relevance import parse_relevance_order
+from ..shared.relevance import parse_relevance_order, parse_relevance_table_text
 
 
 def _wrap_title(title, width: int = 80) -> str:
@@ -508,22 +507,19 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     <td colspan="4" class="desc-cell">{desc_map.get(t, '')}</td>
   </tr>{kw_detail}"""
 
-    # §6 relevance 3-group table
-    rel_rows = re.findall(
-        r"\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*(.+?)\s*\|",
-        relevance_md_text,
-    )
+    # §6 relevance 표 — parse_relevance_table_text 재사용(콤마 doc_count 안전, invariant#3 단일 문법)
+    rel_rows = parse_relevance_table_text(relevance_md_text)
     relevance_rows_html = ""
-    for rank, topic, lab, doc_count, rationale in rel_rows:
-        rc = color_map.get(int(topic), "#999")
+    for r in rel_rows:
+        rc = color_map.get(r["topic"], "#999")
         relevance_rows_html += f"""
   <tr>
-    <td style="text-align:center">{rank}</td>
+    <td style="text-align:center">{r["rank"]}</td>
     <td style="text-align:center"><span style="color:{rc}; font-size:1.2em;">&#9632;</span></td>
-    <td style="text-align:center">{topic}</td>
-    <td>{lab.strip()}</td>
-    <td style="text-align:right">{int(doc_count):,}</td>
-    <td>{rationale.strip()}</td>
+    <td style="text-align:center">{r["topic"]}</td>
+    <td>{r["label"]}</td>
+    <td style="text-align:right">{r["doc_count"]:,}</td>
+    <td>{r["rationale"]}</td>
   </tr>"""
 
     # Plotly UMAP charts
