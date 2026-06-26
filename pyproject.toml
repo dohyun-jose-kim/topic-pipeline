@@ -57,5 +57,8 @@ version = {attr = "topic_pipeline.__version__"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"topic_pipeline" = ["presets/*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

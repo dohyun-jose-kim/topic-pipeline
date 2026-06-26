@@ -125,6 +125,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--to", dest="to_step", choices=STEPS, metavar="STEP",
         help="처음(또는 --from)부터 이 step 까지 실행",
     )
+    parser.add_argument(
+        "--init", metavar="NAME",
+        help="<NAME>.yaml config 를 프리셋으로 스캐폴딩 후 종료 (--preset 으로 도메인 선택)",
+    )
+    parser.add_argument(
+        "--preset", metavar="P",
+        help="--init 프리셋 (biomedical | general; 기본 general=무키·CSV)",
+    )
 
     # ── domain (도메인 바꿀 때) ─────────────────────────
     g_dom = parser.add_argument_group("domain")
@@ -263,6 +271,29 @@ def _select_steps(args: argparse.Namespace) -> list[str]:
     return list(STEPS)
 
 
+def _list_presets() -> list[str]:
+    """패키지 동봉 프리셋 이름 목록 (presets/*.yaml)."""
+    d = Path(__file__).parent / "presets"
+    return sorted(p.stem for p in d.glob("*.yaml")) if d.is_dir() else []
+
+
+def _init(name: str, preset: str | None) -> int:
+    """<name>.yaml 을 프리셋 복사로 생성 (config 스캐폴딩)."""
+    presets = _list_presets()
+    preset = preset or "general"
+    if preset not in presets:
+        print(f"[init] 알 수 없는 preset: {preset!r} (가용: {', '.join(presets) or '없음'})", file=sys.stderr)
+        return 1
+    dst = Path(f"{name}.yaml")
+    if dst.exists():
+        print(f"[init] 이미 존재: {dst} — 덮어쓰지 않음", file=sys.stderr)
+        return 1
+    src = Path(__file__).parent / "presets" / f"{preset}.yaml"
+    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"[init] {dst} 생성 (preset={preset}).\n  편집 후 실행: topic-pipeline --config {dst}")
+    return 0
+
+
 def _print_steps() -> None:
     """step 목록 + 모듈 + 필요/생성 산출물."""
     print("topic-pipeline steps (실행 순서):")
@@ -302,6 +333,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.list_steps:
         _print_steps()
         return 0
+
+    if args.init:
+        return _init(args.init, args.preset)
 
     selected = _select_steps(args)
     if not selected:

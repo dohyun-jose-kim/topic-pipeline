@@ -1,0 +1,56 @@
+# preset: general — 임의 텍스트 CSV + 다국어 임베딩 + 키워드 라벨(무키·오프라인)
+# API 키 없이 즉시 동작. topic-pipeline --init <name> --preset general → --config <name>.yaml.
+paths:
+  output_dir: "./outputs"
+  input_pmid_csv: "./DATA/corpus.csv"  # csv 어댑터의 fallback 입력 (fetch.input_csv 없을 때)
+
+compute:
+  device: cpu                          # cpu | cuda | mps | auto
+  embed_batch_size: 16
+
+fetch:
+  source: csv                          # 임의 텍스트 CSV
+  input_csv: "./DATA/corpus.csv"
+  columns:                             # s1 스키마 ← 사용자 CSV 컬럼명
+    text: text                         # (필수) 본문
+    doc_id: id                         # (선택) 없으면 1..N 정수 합성
+    year: year                         # (선택)
+    title: title                       # (선택)
+    keywords: keywords                 # (선택) → author_keywords
+
+embed:
+  model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  stop_words: null                     # 다국어: 불용어 제거 안 함 (CJK 등)
+  cache: true
+
+cluster:
+  min_topic_size: auto
+  umap_n_components: 2
+  seed: 42
+  sweep:
+    tie_break: target
+    target_n_topics: 10
+    cutoff:
+      n_topics_min: 4
+      n_topics_max: 30
+      silhouette_min: 0.25
+      imbalance_max: 100
+      min_count_in_topics: 25
+
+label:
+  provider: keywords                   # LLM/키 없이 키워드 상위어로 라벨 + 문서수순 랭킹
+  model: ""
+  relevance_criterion: "주제 관련도"
+
+timeseries:
+  relevance_md: null
+  trend:
+    enabled: true
+    target_ranks: [1, 2, 3]
+    top_n_keywords: 7
+    p_threshold: 0.05
+    moving_avg_window: 5
+
+report:
+  intro: |
+    텍스트 CSV → 다국어 임베딩 → BERTopic 클러스터링 → 키워드 라벨 → 시계열 → HTML 리포트 (무키·오프라인).

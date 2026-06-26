@@ -1,0 +1,52 @@
+# preset: biomedical — PubMed PMID + S-PubMedBERT + Claude 라벨 (기본 도메인)
+# topic-pipeline --init <name> --preset biomedical 로 생성. 값 편집 후 --config <name>.yaml.
+paths:
+  output_dir: "./outputs"
+  input_pmid_csv: "./DATA/pmids.csv"   # 'pmid' 컬럼 CSV (fetch_pmids.py 로 생성)
+
+compute:
+  device: cpu                          # cpu | cuda | mps | auto
+  embed_batch_size: 16
+
+fetch:
+  source: pubmed
+  batch_size: 200
+  ncbi_api_key: ""                     # 비우면 env NCBI_API_KEY 참조
+  ncbi_email: ""
+
+embed:
+  model_name: "pritamdeka/S-PubMedBert-MS-MARCO"
+  stop_words: english
+  cache: true
+
+cluster:
+  min_topic_size: auto
+  umap_n_components: 2
+  seed: 42
+  sweep:
+    tie_break: target                  # 도메인 적합 토픽수 우선
+    target_n_topics: 10
+    cutoff:
+      n_topics_min: 4
+      n_topics_max: 30
+      silhouette_min: 0.25
+      imbalance_max: 100
+      min_count_in_topics: 25
+
+label:
+  provider: claude                     # ANTHROPIC_API_KEY 필요 (없으면 keywords 로 변경)
+  model: "claude-sonnet-4-20250514"
+  relevance_criterion: "생리적 기능성(physiological functionality)"
+
+timeseries:
+  relevance_md: null
+  trend:
+    enabled: true
+    target_ranks: [1, 2, 3]
+    top_n_keywords: 7
+    p_threshold: 0.05
+    moving_avg_window: 5
+
+report:
+  intro: |
+    PubMed 수집 → SPubMedBERT 임베딩 → BERTopic 클러스터링 → LLM 라벨/관련도 → 시계열 → HTML 리포트.
