@@ -22,3 +22,21 @@ def test_legend_custom_2group():
     # 2그룹 split_ranks(10,2)=[5,5] → 1~5 / 6~10위
     assert "(1~5위)" in html and "(6~10위)" in html
     assert html.count("위)") == 2  # outlier 제외 2 그룹
+
+
+def test_write_results_json(tmp_path):
+    import json
+
+    s7_report._write_results_json(
+        tmp_path, {"주제": "T", "데이터 출처": "S"}, {"silhouette": 0.3},
+        [5, 4], {5: "가", 4: "나"}, {5: "a", 4: "b"}, {5: "d5", 4: "d4"},
+        {5: "#111", 4: "#222"},
+        total_docs=10, n_classified=8, n_outliers=2, n_topics=2, year_min=2020, year_max=2021,
+    )
+    data = json.loads((tmp_path / "s7_results.json").read_text(encoding="utf-8"))
+    assert data["summary"]["total_docs"] == 10
+    assert data["project"]["주제"] == "T"
+    assert data["topics"][0] == {
+        "topic": 5, "rank": 1, "label_kr": "가", "label_en": "a",
+        "description": "d5", "color": "#111",
+    }

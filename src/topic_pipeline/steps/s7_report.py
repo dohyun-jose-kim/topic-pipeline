@@ -20,6 +20,7 @@ PLAN-v2 §8 Phase 3d. 원본: 06_Clustered_Topic_Assay_v3/clustered_topic_report
 from __future__ import annotations
 
 import base64
+import json
 import os
 import re
 from pathlib import Path
@@ -343,6 +344,44 @@ def _build_color_legend_html(n_topics: int, taxonomy: dict) -> str:
     return " &nbsp; ".join(spans)
 
 
+def _write_results_json(
+    output_dir: Path, project: dict, metrics: dict, topic_order: list,
+    name_map: dict, en_map: dict, desc_map: dict, color_map: dict,
+    *, total_docs: int, n_classified: int, n_outliers: int,
+    n_topics: int, year_min: int, year_max: int,
+) -> None:
+    """기계판독 결과 번들 s7_results.json (외부/대시보드/corpus 간 비교용). 표·메타만(그림 제외)."""
+    def _num(v):
+        try:
+            f = float(v)
+            return int(f) if f.is_integer() else f
+        except (TypeError, ValueError):
+            return str(v)
+
+    results = {
+        "project": {"주제": project.get("주제", ""), "데이터 출처": project.get("데이터 출처", "")},
+        "summary": {
+            "total_docs": total_docs, "n_classified": n_classified, "n_outliers": n_outliers,
+            "n_topics": n_topics, "year_min": year_min, "year_max": year_max,
+        },
+        "metrics": {k: _num(v) for k, v in (metrics or {}).items()},
+        "topics": [
+            {
+                "topic": int(t),
+                "rank": topic_order.index(t) + 1,
+                "label_kr": name_map.get(t, ""),
+                "label_en": en_map.get(t, ""),
+                "description": desc_map.get(t, ""),
+                "color": color_map.get(t, ""),
+            }
+            for t in topic_order
+        ],
+    }
+    path = output_dir / "s7_results.json"
+    path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[results] {path}")
+
+
 def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, output_dir: Path) -> str:
     df = data["df"]
     labels_df = data["labels_df"]
@@ -369,6 +408,16 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     label_cfg = cfg.get("label", {})
 
     color_legend = _build_color_legend_html(len(topic_order), taxonomy)
+
+    # §8 보조 시각화: config(report.aux_visualizations) 기반. 기본 [] → 죽은 링크 대신 안내.
+    aux_items = report.get("aux_visualizations", []) or []
+    if aux_items:
+        aux_html = "<ul>\n" + "\n".join(
+            f'  <li><code>{a.get("file", "")}</code> — {a.get("desc", "")}</li>'
+            for a in aux_items
+        ) + "\n</ul>"
+    else:
+        aux_html = '<p class="interact-hint">(보조 시각화 미설정 — report.aux_visualizations 로 추가)</p>'
 
     # §1 summary
     summary_items = (
@@ -696,19 +745,19 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
 <div class="chart-section">{chart_umap_relevance}</div>
 
 <h2>8. 보조 시각화</h2>
-<p>BERTopic 이 생성한 인터랙티브 시각화는 별도 HTML 로 제공 (s3 산출물 경로):</p>
-<ul style="color:#555;">
-  <li><code>topic_barchart.html</code> — 토픽별 키워드 바차트</li>
-  <li><code>topic_heatmap.html</code> — c-TF-IDF 히트맵</li>
-  <li><code>intertopic_distance.html</code> — 토픽 간 거리</li>
-  <li><code>topic_hierarchy.html</code> — 토픽 계층</li>
-</ul>
+{aux_html}
 
 <h2>9. 요약 코멘트</h2>
 <div class="comment-box">
   <p>{report.get('summary_comment', '').strip() or '(config.report.summary_comment 에 요약 작성)'}</p>
 </div>
 """
+
+    _write_results_json(
+        output_dir, project, metrics, topic_order, name_map, en_map, desc_map, color_map,
+        total_docs=total_docs, n_classified=n_classified, n_outliers=n_outliers,
+        n_topics=n_topics_real, year_min=year_min, year_max=year_max,
+    )
 
     # plotly.js 번들을 head 에 1회 주입 → 차트 fragment 는 모두 include_plotlyjs=False (순서 무관).
     plotly_head = f"<script>{get_plotlyjs()}</script>"
