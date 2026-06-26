@@ -6,6 +6,7 @@ Phase 6 부터 loguru 로깅 + step 실패 처리 + step 타이밍 추가 (PLAN 
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib
 import sys
 import time
@@ -78,6 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         default=_DEFAULT_CONFIG_NAME,
         help=f"config YAML 경로 (default: ./{_DEFAULT_CONFIG_NAME})",
+    )
+    parser.add_argument(
+        "--run-id", metavar="NAME",
+        help="[paths.run_id] 산출물을 output_dir/<NAME>/ 로 격리\n"
+             "(default: 없음 → output_dir 직접; 'auto'=타임스탬프 run_YYYYmmdd_HHMMSS)",
     )
 
     # ── domain (도메인 바꿀 때) ─────────────────────────
@@ -162,6 +168,8 @@ def _apply_overrides(cfg: dict, args: argparse.Namespace) -> dict:
         cfg.setdefault("label", {})["relevance_criterion"] = args.relevance_criterion
     if args.input_pmid is not None:
         cfg.setdefault("paths", {})["input_pmid_csv"] = args.input_pmid
+    if args.run_id is not None:
+        cfg.setdefault("paths", {})["run_id"] = args.run_id
     if args.project_theme is not None:
         cfg.setdefault("project", {})["주제"] = args.project_theme
     if args.project_source is not None:
@@ -189,12 +197,27 @@ def _setup_logging(output_dir: Path) -> Path:
     return log_path
 
 
+def _resolve_output_dir(cfg: dict) -> Path:
+    """paths.output_dir + (선택) paths.run_id 로 effective 산출물 디렉토리 계산.
+
+    run_id == 'auto' 면 타임스탬프(run_YYYYmmdd_HHMMSS). cfg['paths']['output_dir'] 를
+    effective 경로로 갱신 → 모든 step 이 동일 run 디렉토리를 본다. run_id 없으면 today 와 동일.
+    """
+    base = Path(cfg["paths"]["output_dir"])
+    run_id = cfg.get("paths", {}).get("run_id")
+    if run_id == "auto":
+        run_id = f"run_{datetime.now():%Y%m%d_%H%M%S}"
+    output_dir = base / run_id if run_id else base
+    cfg["paths"]["output_dir"] = str(output_dir)
+    return output_dir
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     selected = args.steps or STEPS
     cfg = _apply_overrides(_load_cfg(args.config), args)
 
-    output_dir = Path(cfg["paths"]["output_dir"])
+    output_dir = _resolve_output_dir(cfg)
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = _setup_logging(output_dir)
 
@@ -213,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.info(f"=== step: {step} start ===")
         try:
             mod = importlib.import_module(mod_path)
-            mod.run(cfg)
+            mod.run(copy.deepcopy(cfg))
         except Exception as e:
             logger.exception(f"[fail] {step}: {type(e).__name__}: {e}")
             return 1

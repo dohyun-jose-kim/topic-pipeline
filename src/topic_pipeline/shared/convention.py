@@ -25,3 +25,11 @@ def read_selected_model_dir(output_dir: Path) -> Path:
     """s3_selected_model.txt 에 기록된 캐시 디렉토리 반환."""
     txt = (output_dir / "s3_selected_model.txt").read_text(encoding="utf-8").strip()
     return output_dir / txt / "topic_model"
+
+
+def relevance_md_path(output_dir) -> Path:
+    """s5_label-relevance step 산출물의 convention 경로 (run 디렉토리 기준).
+
+    config 의 relevance_md 가 null 일 때 s6/s7 이 이 경로로 fallback.
+    """
+    return Path(output_dir) / "s5_label-relevance.md"

@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from ..shared.colors import COLOR_GROUPS, get_colors, relevance_split
-from ..shared.convention import load_labeled_convention
+from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.relevance import parse_relevance_order
 
@@ -37,7 +37,7 @@ def run(cfg: dict) -> None:
     fig_dir = output_dir / "s6_figures"
     fig_dir.mkdir(exist_ok=True)
 
-    relevance_md = Path(ts_cfg["relevance_md"])
+    relevance_md = Path(ts_cfg["relevance_md"]) if ts_cfg.get("relevance_md") else relevance_md_path(output_dir)
     labels_csv = output_dir / "s5_labels.csv"
 
     if ts_cfg.get("labeled_csv"):

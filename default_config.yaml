@@ -6,6 +6,7 @@
 paths:
   output_dir: "./outputs"
   input_pmid_csv: "./DATA/aqua_byproducts-5590.csv"
+  # run_id: null            # 설정 시 산출물을 output_dir/<run_id>/ 로 격리 (CLI --run-id; 'auto'=타임스탬프)
 
 compute:
   device: cpu            # 'cpu'(기본) | 'cuda' | 'mps' | 'auto'(가용 가속기 자동 선택)
@@ -54,9 +55,9 @@ label:
   relevance_criterion: "생리적 기능성(physiological functionality)"
 
 timeseries:
-  # relevance_md: label-relevance step 이 자동 생성 — 외부 md 수동 작성 불필요.
-  # YAML anchor (&) 로 report 섹션에서도 재사용.
-  relevance_md: &relevance_md "./outputs/s5_label-relevance.md"
+  # null → {output_dir}/s5_label-relevance.md 자동 사용 (convention.relevance_md_path).
+  # run-id 네임스페이싱과 호환되도록 기본 null. 외부 md 강제 시 경로 직접 지정.
+  relevance_md: null
   trend:
     enabled: true
     target_ranks: [1, 2, 3]
@@ -82,4 +83,4 @@ report:
     cache: true
   summary_comment: |
     (end-to-end 검증 완료 시 기입)
-  relevance_md: *relevance_md   # timeseries.relevance_md 재참조 (YAML anchor)
+  relevance_md: null            # null → {output_dir}/s5_label-relevance.md

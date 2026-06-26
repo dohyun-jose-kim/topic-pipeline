@@ -31,7 +31,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from ..shared.colors import COLOR_GROUPS, get_colors, relevance_split
-from ..shared.convention import load_labeled_convention
+from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.html_common import CSS
 from ..shared.relevance import parse_relevance_order
@@ -108,7 +108,7 @@ def run(cfg: dict) -> None:
 
 def _load_data(cfg: dict, output_dir: Path) -> dict:
     r = cfg["report"]
-    relevance_md = Path(r["relevance_md"])
+    relevance_md = Path(r["relevance_md"]) if r.get("relevance_md") else relevance_md_path(output_dir)
     keywords_csv = Path(r.get("keywords_csv") or (output_dir / "s4_keywords_comparison.csv"))
     labels_csv = output_dir / "s5_labels.csv"
     metrics_csv = r.get("metrics_csv") or str(output_dir / "s3_metrics.csv")
