@@ -74,7 +74,63 @@ def _run_pubmed(cfg: dict, output_dir: Path) -> None:
     print(f"저장 → {out_path} ({len(records)} 편)")
 
 
-_SOURCES = {"pubmed": _run_pubmed}
+def _run_csv(cfg: dict, output_dir: Path) -> None:
+    """일반 CSV 어댑터 — 임의 텍스트 CSV → s1_meta.csv(S1_COLUMNS).
+
+    fetch.input_csv(없으면 paths.input_pmid_csv) 를 읽고 fetch.columns 매핑(s1 스키마 ← 사용자
+    컬럼명)으로 변환. 본문 텍스트(text/abstract)는 필수. doc_id 없으면 1..N 정수를 pmid 로 합성
+    (병합키 계약 유지). mesh_terms 는 항상 빈 값(PubMed 전용 메타).
+    """
+    fetch_cfg = cfg.get("fetch", {}) or {}
+    csv_path = Path(fetch_cfg.get("input_csv") or cfg["paths"]["input_pmid_csv"])
+    colmap = fetch_cfg.get("columns", {}) or {}
+
+    df = pd.read_csv(csv_path)
+    print(f"[s1] CSV 어댑터: {len(df)} 행 로드 ← {csv_path}")
+
+    def pick(schema_name: str):
+        """schema_name 에 매핑된 사용자 컬럼 Series (매핑 없으면 동명 컬럼). 없으면 None."""
+        user = colmap.get(schema_name, schema_name)
+        return df[user] if user in df.columns else None
+
+    text = pick("text")
+    if text is None:
+        text = pick("abstract")
+    if text is None:
+        raise ValueError(
+            f"본문 텍스트 컬럼 없음 — fetch.columns.text 로 지정하세요 (가용: {list(df.columns)})"
+        )
+
+    n = len(df)
+    doc_id = pick("doc_id")
+    if doc_id is None:
+        doc_id = pick("pmid")
+    if doc_id is not None:
+        pmid = pd.to_numeric(doc_id, errors="coerce")
+        if pmid.isna().any():
+            pmid = pd.Series(range(1, n + 1))
+    else:
+        pmid = pd.Series(range(1, n + 1))
+
+    year = pick("year")
+    title = pick("title")
+    keywords = pick("keywords")
+
+    out = pd.DataFrame({
+        "pmid": pmid.astype(int).to_numpy(),
+        "year": year.to_numpy() if year is not None else "",
+        "title": title.astype(str).to_numpy() if title is not None else "",
+        "abstract": text.astype(str).to_numpy(),
+        "author_keywords": keywords.astype(str).to_numpy() if keywords is not None else "",
+        "mesh_terms": "",
+    })[S1_COLUMNS]
+
+    out_path = output_dir / "s1_meta.csv"
+    out.to_csv(out_path, index=False, encoding="utf-8-sig")
+    print(f"저장 → {out_path} ({len(out)} 행; mesh_terms 비움)")
+
+
+_SOURCES = {"pubmed": _run_pubmed, "csv": _run_csv}
 
 
 def _parse_article(article: ET.Element) -> dict | None:

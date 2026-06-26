@@ -20,6 +20,15 @@ project:
   데이터 출처: null
 
 fetch:
+  # source: pubmed          # 'pubmed'(기본, PMID efetch) | 'csv'(임의 텍스트 CSV)
+  # ── csv 어댑터 (source: csv 일 때) ──────────────────────
+  # input_csv: "./DATA/my_corpus.csv"   # 없으면 paths.input_pmid_csv 사용
+  # columns:                 # s1 스키마 ← 사용자 CSV 컬럼명 매핑 (없으면 동명 컬럼 시도)
+  #   text: abstract         #   (필수) 본문 텍스트
+  #   doc_id: id             #   (선택) 없으면 1..N 정수 pmid 합성
+  #   year: pub_year         #   (선택)
+  #   title: title           #   (선택)
+  #   keywords: tags         #   (선택) → author_keywords (mesh_terms 는 항상 빈 값)
   batch_size: 200
   # ── NCBI Entrez 인증 (선택적) ──────────────────────────
   # 설정 시 rate limit 3/s → 10/s 로 완화됨.
