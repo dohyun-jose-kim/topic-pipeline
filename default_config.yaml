@@ -70,6 +70,8 @@ label:
   #   export ANTHROPIC_API_KEY=sk-ant-...
   # anthropic SDK 가 자동 로드.
   model: "claude-sonnet-4-20250514"
+  # provider: claude       # 'claude'(기본) | 'keywords'(LLM 없이 키워드 라벨, 무키·오프라인) | 'local'(OpenAI 호환)
+  # base_url: "http://localhost:11434/v1"   # provider: local 일 때 (Ollama; LM Studio 는 :1234/v1)
   relevance_criterion: "생리적 기능성(physiological functionality)"
   # domain: null           # s5 프롬프트 도메인 서술어. null → relevance_criterion → project.주제 → '문서'
 

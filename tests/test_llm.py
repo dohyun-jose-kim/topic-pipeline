@@ -2,6 +2,8 @@
 
 import anthropic
 import httpx
+import pytest
+import responses
 
 from topic_pipeline.shared import llm
 
@@ -56,3 +58,49 @@ def test_call_claude_retries_then_succeeds(monkeypatch):
     out = llm.call_claude("p", "m", backoff=0)
     assert out == "OK"
     assert state["n"] == 2
+
+
+# ── provider 디스패치 + local (issue #3) ──
+
+def test_generate_dispatch_claude(monkeypatch):
+    class _Messages:
+        def create(self, **kwargs):
+            return _Resp("CLAUDE_OK")
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            self.messages = _Messages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
+    assert llm.generate("p", {"label": {"provider": "claude", "model": "m"}}) == "CLAUDE_OK"
+
+
+def test_generate_default_provider_is_claude(monkeypatch):
+    monkeypatch.setattr(llm, "call_claude", lambda prompt, model, **kw: f"C:{model}")
+    assert llm.generate("p", {"label": {"model": "m"}}) == "C:m"  # provider 미지정 → claude
+
+
+def test_generate_dispatch_local(monkeypatch):
+    monkeypatch.setattr(llm, "call_local", lambda prompt, model, **kw: f"LOCAL:{model}:{kw.get('base_url')}")
+    out = llm.generate("p", {"label": {"provider": "local", "model": "llama3", "base_url": "http://x/v1"}})
+    assert out == "LOCAL:llama3:http://x/v1"
+
+
+def test_generate_keywords_raises():
+    with pytest.raises(ValueError, match="keywords"):
+        llm.generate("p", {"label": {"provider": "keywords"}})
+
+
+@responses.activate
+def test_call_local_openai_compatible():
+    responses.add(
+        responses.POST,
+        "http://localhost:11434/v1/chat/completions",
+        json={"choices": [{"message": {"content": "LOCAL_OK"}}]},
+        status=200,
+    )
+    out = llm.call_local("prompt", "llama3", base_url="http://localhost:11434/v1")
+    assert out == "LOCAL_OK"
+    body = responses.calls[0].request.body
+    body = body.decode() if isinstance(body, (bytes, bytearray)) else body
+    assert "llama3" in body
