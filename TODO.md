@@ -173,6 +173,22 @@ T4-6 md export·T4-7 serve(optional), cosmetic(s5 요약 bullet·mpl 타이틀),
 
 ---
 
+## 범용 tool 확장 (2026-06-27, GitHub 이슈 주도 — issues #3~#7 Closed)
+
+발행 후 "쉬운 다목적 범용 tool" 5기능 (baby step + `Closes #N`, push):
+
+| 기능 | 이슈 | 커밋 | 내용 |
+|---|---|---|---|
+| LLM-optional + 로컬 | #3 | `b7088b9`·`779a049`·`fb53351` | `label.provider` = claude \| **keywords**(무키·오프라인) \| **local**(OpenAI 호환) |
+| init + 프리셋 | #4 | `d24cc07` | `--init/--preset`, presets: biomedical·general |
+| ingest 어댑터 | #5 | `6fa886c` | jsonl·dir·arxiv (+`_emit_s1_from_df` 공용화) |
+| 배포 | #6 | `8b11661` | Dockerfile·.dockerignore·pipx/`build` (presets 패키징 검증) |
+| web/serve | #7 | `bf09dfa` | `--serve/--port` (127.0.0.1, logs/ 차단) |
+
+> pytest **86 passed**. 미해결 백로그(should_fix, 이슈 OPEN): #1 `_validate_preconditions` override, #2 sweep `tie_break` 라벨.
+
+---
+
 ## 주의사항
 
 - **원본 파일 수정 금지**: `01~06`, `week_7/*` 는 참고만. 복사/재정리만 `90_CLI/src/` 에서.
