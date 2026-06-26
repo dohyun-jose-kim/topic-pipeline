@@ -21,11 +21,24 @@ from tqdm import tqdm
 
 from ..shared.pubmed import efetch_articles
 
+# s1_meta.csv 스키마 = 단계 간 계약(invariant). 모든 ingest 어댑터가 이 컬럼을 emit 해야 한다.
+S1_COLUMNS = ["pmid", "year", "title", "abstract", "author_keywords", "mesh_terms"]
+
 
 def run(cfg: dict) -> None:
+    """fetch.source 에 따라 ingest 어댑터를 골라 s1_meta.csv 생성. 기본 'pubmed'."""
     output_dir = Path(cfg["paths"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    source = (cfg.get("fetch", {}) or {}).get("source", "pubmed")
+    runner = _SOURCES.get(source)
+    if runner is None:
+        raise ValueError(f"알 수 없는 fetch.source: {source!r} (지원: {sorted(_SOURCES)})")
+    runner(cfg, output_dir)
+
+
+def _run_pubmed(cfg: dict, output_dir: Path) -> None:
+    """PubMed efetch 어댑터 — s1_meta.csv(S1_COLUMNS) 생성. (기존 동작 그대로)"""
     fetch_cfg = cfg.get("fetch", {})
     pmid_csv = Path(cfg["paths"]["input_pmid_csv"])
 
@@ -59,6 +72,9 @@ def run(cfg: dict) -> None:
 
     pd.DataFrame(records).to_csv(out_path, index=False, encoding="utf-8-sig")
     print(f"저장 → {out_path} ({len(records)} 편)")
+
+
+_SOURCES = {"pubmed": _run_pubmed}
 
 
 def _parse_article(article: ET.Element) -> dict | None:
