@@ -14,11 +14,13 @@ config:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
 
 from ..shared.llm import call_claude
+from ..shared.relevance import parse_relevance_table
 
 
 def run(cfg: dict) -> None:
@@ -35,6 +37,7 @@ def run(cfg: dict) -> None:
     rank_md = _rank_by_relevance(labels_df, criterion, model)
     out_path.write_text(rank_md + "\n", encoding="utf-8")
     print(f"저장 → {out_path}")
+    _write_topic_order_json(out_path, output_dir, criterion, model)
 
 
 def _build_rank_prompt(labels_df: pd.DataFrame, criterion: str) -> str:
@@ -92,3 +95,21 @@ def _rank_by_relevance(labels_df: pd.DataFrame, criterion: str, model: str) -> s
     print(f"[LLM] relevance rank 호출 (criterion: {criterion})")
     text = call_claude(prompt, model)
     return text.strip()
+
+
+def _write_topic_order_json(md_path: Path, output_dir: Path, criterion: str, model: str) -> None:
+    """방금 쓴 md 를 재파싱해 구조화 JSON(s5_topic_order.json) 도 emit.
+
+    md 가 단일 소스(LLM 이 JSON 을 직접 만들지 않음) → 정수 Topic 컬럼/표 포맷(invariant#3) 유지.
+    외부/API 소비자용 추가 산출물.
+    """
+    rows = parse_relevance_table(md_path)
+    payload = {
+        "criterion": criterion,
+        "model": model,
+        "generated_from": md_path.name,
+        "topics": rows,
+    }
+    json_path = output_dir / "s5_topic_order.json"
+    json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"저장 → {json_path} ({len(rows)} topics)")
