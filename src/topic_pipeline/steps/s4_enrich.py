@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..shared.convention import load_labeled_convention, read_selected_model_dir
+from ..shared.convention import load_labeled_convention, read_selected_model_dir, resolve_embed_model
 
 TOP_N = 10
 
@@ -31,9 +31,7 @@ def run(cfg: dict) -> None:
 
     setup_torch(cfg)
 
-    embed_model_name = cfg.get("embed", {}).get(
-        "model_name", "pritamdeka/S-PubMedBert-MS-MARCO"
-    )
+    embed_model_name = resolve_embed_model(cfg)
 
     if enrich_cfg.get("topic_model_dir"):
         # 명시적 override (Phase 3a 테스트 스타일)

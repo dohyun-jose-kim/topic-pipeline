@@ -33,3 +33,12 @@ def relevance_md_path(output_dir) -> Path:
     config 의 relevance_md 가 null 일 때 s6/s7 이 이 경로로 fallback.
     """
     return Path(output_dir) / "s5_label-relevance.md"
+
+
+# embed 모델 기본값 단일 소스 (s2_embed / s4_enrich 중복 리터럴 통합).
+DEFAULT_EMBED_MODEL = "pritamdeka/S-PubMedBert-MS-MARCO"
+
+
+def resolve_embed_model(cfg) -> str:
+    """embed.model_name (없으면 생의학 기본 모델 DEFAULT_EMBED_MODEL)."""
+    return (cfg.get("embed") or {}).get("model_name") or DEFAULT_EMBED_MODEL

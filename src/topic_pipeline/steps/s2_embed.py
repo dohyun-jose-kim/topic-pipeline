@@ -17,6 +17,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..shared.convention import DEFAULT_EMBED_MODEL, resolve_embed_model
+
 
 def run(cfg: dict) -> None:
     embed_cfg = cfg.get("embed", {})
@@ -27,8 +29,11 @@ def run(cfg: dict) -> None:
     cache_npy = output_dir / "s2_embeddings.npy"
     filtered_meta_csv = output_dir / "s2_meta_for_embed.csv"
 
-    model_name = embed_cfg.get("model_name", "pritamdeka/S-PubMedBert-MS-MARCO")
+    model_name = resolve_embed_model(cfg)
     use_cache = embed_cfg.get("cache", True)
+    if model_name != DEFAULT_EMBED_MODEL and use_cache and cache_npy.exists():
+        print(f"[s2] ⚠️ 비기본 embed 모델({model_name})인데 기존 임베딩 캐시 존재 — "
+              f"모델을 바꿨다면 s2_embeddings.npy 삭제 또는 embed.cache=false 권장 (캐시는 shape 만 비교)")
 
     df = pd.read_csv(meta_csv)
     print(f"[s2] {len(df)} 행 로드 ← {meta_csv}")
