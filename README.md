@@ -183,4 +183,4 @@ topic-pipeline --project-theme "운동생리 연구" --project-source "PubMed 20
 
 - 개선 플랜·진행 로그: [`Docs/v3_improvement_plan.md`](./Docs/v3_improvement_plan.md), [`TODO.md`](./TODO.md)
 - 작업 정책: [`CLAUDE.md`](./CLAUDE.md)
-- 사내 인턴 과제 산출물 — 외부 배포는 별도 협의
+- 학습·포트폴리오 목적 공개 — 코드 [MIT](./LICENSE). 실제 데이터·API 키·사내 자료는 미포함(코드/소형 예시만).

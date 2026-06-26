@@ -7,11 +7,11 @@
 
 ```
 90_CLI v3 작업 이어갈게. 다음 파일을 순서대로 읽어줘:
-1. /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_f/90_CLI/TODO.md
-2. /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_f/90_CLI/Docs/NEXT_PLAN.md
-3. /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_f/90_CLI/Docs/KNOWN_LIMITATIONS.md
-4. /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_f/90_CLI/PLAN-v2.md (참고용, 이미 완료)
-5. /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/CLAUDE.md
+1. ./TODO.md
+2. ./Docs/NEXT_PLAN.md
+3. ./Docs/KNOWN_LIMITATIONS.md
+4. ./PLAN-v2.md (참고용, 이미 완료)
+5. ~/.claude/CLAUDE.md (전역)
 
 현 브랜치: week_f-90_cli_v3.
 이전 e2e 결과: 12토픽 (mts=27 수동), outlier 754개, Phase 1~8 완성.

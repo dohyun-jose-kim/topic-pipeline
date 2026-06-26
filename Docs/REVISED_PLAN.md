@@ -100,14 +100,14 @@ return dict 에 `"title": title,` 추가 (year 다음, abstract 앞).
 
 **Commit A 이후** (~3-5분, 사용자 직접 실행):
 ```bash
-cd /Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_f/90_CLI
+cd <repo>
 rm outputs/s1_meta.csv
-/Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_7/wk7_Transformer/.wk7trf_conda/bin/python \
+python \
   -m topic_pipeline.cli fetch --config default_config.yaml
 ```
 체크:
 ```bash
-/Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_7/wk7_Transformer/.wk7trf_conda/bin/python -c "
+python -c "
 import pandas as pd
 df = pd.read_csv('outputs/s1_meta.csv')
 assert 'title' in df.columns
@@ -120,7 +120,7 @@ print(f'blank: {df[\"title\"].eq(\"\").sum()}')
 
 **Commit B 이후** (~5s, API 없음):
 ```bash
-/Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_7/wk7_Transformer/.wk7trf_conda/bin/python \
+python \
   -m topic_pipeline.cli report --config default_config.yaml
 open outputs/s7_report.html
 ```

@@ -7,6 +7,7 @@ name = "topic-pipeline"
 dynamic = ["version"]
 description = "PMID CSV → 임베딩 → BERTopic 클러스터 → LLM 라벨 → 시계열/트렌드 → 종합 HTML 리포트 CLI 파이프라인"
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.11"
 authors = [
     {name = "dh.kim"},
@@ -14,6 +15,7 @@ authors = [
 keywords = ["bertopic", "pubmed", "bibliometric", "topic-modeling", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
