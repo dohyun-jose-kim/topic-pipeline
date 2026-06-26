@@ -133,11 +133,16 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M2** T2-5/6/7 | `3ad921a` | feat: --run-id 출력 네임스페이싱 + relevance_md null-safe(anchor 제거) + step별 cfg deepcopy. pytest 18 |
 | 2026-06-26 | (별도 요청) | `178c7bd` | docs: CLAUDE_dh_v1.md 범용 작업-방식 템플릿 (백그라운드) |
 | 2026-06-26 | **M2** T2-8 | `0dd64b2` | feat: --list-steps/--from/--to + 사전 조건 검증(fail-fast). pytest 26 |
+| 2026-06-26 | (M2 로그) | `4745e58` | docs: TODO v3 진행 로그 |
+| 2026-06-26 | **M3** LLM-1 | `4b01cbc` | refactor: 중복 _call_claude → shared/llm.py +retry. s5 두 step 재지정 |
+| 2026-06-26 | **M3** T2-9 | `32adac4` | refactor: device 강제 → shared/device.setup_torch 통합(s2/s3/s4) + batch_size config화 |
 
-> 검증: 스크래치 venv(경량 deps)에서 pytest 26 passed + `--list-steps`/`--help`/fail-fast 기능 확인.
+> 검증: 스크래치 venv(경량 deps)에서 **pytest 28 passed** + `--list-steps`/`--help`/fail-fast 기능 확인.
 > **byte-identical 회귀(기본 config 전체 실행)는 사용자 실제 env(torch/bertopic+데이터+API키) 필요** — 미수행.
+> **기반(M1~M3) 완료.** 이후 M4~M6 은 출력에 영향 주는 기능 작업.
 
-**다음**: M3 (공유 리팩터 1회 — LLM-1: 중복 `_call_claude`(s5_label==s5_label_relevance) → `shared/llm.py` 추출 +retry; T2-9: `shared/device.setup_torch` 를 s2/s3/s4/s7 에 배선, batch_size config화).
+**다음**: M4 (범용 corpus 대응) — T3-1/2 ingest 어댑터(S1_COLUMNS 고정+CSV), T3-3 embed 모델 config(resolve_embed_model),
+T3-4 stop_words config, T3-5 MeSH/Author-KW optional, T3-6 LLM 프롬프트 도메인 템플릿화(rule#2 정수 regex 불가침).
 
 ---
 
