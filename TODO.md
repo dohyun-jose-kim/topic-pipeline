@@ -154,12 +154,22 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M5** T4-1 | `2e093b2` | fix: plotly 번들 head 1회 주입 (include_plotlyjs 순서결합 버그) |
 | 2026-06-26 | **M5** T4-4 | `8a0d677` | feat: s5_topic_order.json (md 재파싱→invariant#3 유지) + parse_relevance_table |
 
-> 검증: 스크래치 venv(경량 deps)에서 **pytest 52 passed**. M5 색상/legend/parse_relevance_table 단위 검증.
-> **byte-identical 회귀(기본 config 전체) + LLM 라벨 변화는 사용자 실제 env 필요.**
-> 기반(M1~M3)·M4 완료. **M5 진행 중** — T3-7·T4-1·T4-2·T4-4 ✅.
+| 2026-06-26 | **M5** T4-3/T4-5 | `6a6bfcf` | feat: §8 죽은 BERTopic 링크 제거+config화 + s7_results.json |
+| 2026-06-26 | **M6** T1-1 | `2d1d44a` | feat: shared/preprocess.py (abstract 정제, 근사·stdlib) |
+| 2026-06-26 | **M6** T1-2 | `377f3c9` | feat: s0_preprocess step 등록 (기본 off→skip) |
+| 2026-06-26 | **M6** T1-3 | `db91cee` | feat: s2/s3 abstract_clean 우선 소비 + s4 가드 (기본 byte-identical) |
+| 2026-06-26 | **M6** T1-6 | `c841e84` | feat: sweep tie-break 옵션 (median_low 기본 \| target-n, KNOWN#4) |
+| 2026-06-26 | **M6** T1-7 | `b18c5da` | feat: 선택적 guided 모델링 (seed_topic_list) |
+| 2026-06-26 | **M6** T1-8 | (직전) | docs: KNOWN_LIMITATIONS M6 capability·결정 기록 |
 
-**다음**: M5 잔여 — **T4-3** 섹션 config화(report.sections, 죽은 BERTopic 링크 제거; _build_html 대형 리팩터) →
-**T4-5** s7_results.json → **T4-6** md export → **T4-7** stdlib serve. (cosmetic: s5 요약 bullet taxonomy화, mpl L254 타이틀.) 이후 **M6**(품질, 출력 변경·마지막).
+> 검증: 스크래치 venv 에서 **pytest 62 passed** (순수 함수·헬퍼·기본경로 단위).
+> **M1~M6 핵심 완료** — 모든 신규 기능 opt-in, 기본 config 동작 byte-identical 유지, invariant#3 보존.
+> ⚠️ **전체 파이프라인 byte-identical 회귀 + LLM 출력 + M6 활성경로(전처리/target-n/guided)는
+> 사용자 실제 env(torch/bertopic+데이터+API키) A/B 검증 필수.**
+
+**잔여(후속·미구현):** T1-5 c_v coherence/diversity 지표, default 플립(전처리 on/5D/target-n — A/B 후),
+T4-6 md export·T4-7 serve(optional), cosmetic(s5 요약 bullet·mpl 타이틀), README 전면 동기화.
+→ **5단계(검증·리뷰)** 는 사용자 env 에서 실행.
 
 ---
 
