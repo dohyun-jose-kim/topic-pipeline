@@ -12,7 +12,6 @@ PLAN-v2 §8 Phase 3a. 원본: 03_Cluster-to-Topic/enrich_topics_v2.py.
 
 from __future__ import annotations
 
-import os
 from collections import Counter
 from pathlib import Path
 
@@ -27,6 +26,10 @@ def run(cfg: dict) -> None:
     enrich_cfg = cfg.get("enrich", {}) or {}
     output_dir = Path(cfg["paths"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    from ..shared.device import setup_torch
+
+    setup_torch(cfg)
 
     embed_model_name = cfg.get("embed", {}).get(
         "model_name", "pritamdeka/S-PubMedBert-MS-MARCO"
@@ -54,11 +57,6 @@ def run(cfg: dict) -> None:
 
 
 def _load_bertopic(model_dir: Path, embed_model_name: str):
-    import torch
-
-    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-    torch.set_default_device("cpu")
-
     from bertopic import BERTopic
     from sentence_transformers import SentenceTransformer
 

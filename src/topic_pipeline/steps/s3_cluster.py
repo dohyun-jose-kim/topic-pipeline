@@ -21,7 +21,6 @@ PLAN-v2:
 from __future__ import annotations
 
 import hashlib
-import os
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -99,9 +98,8 @@ def run(cfg: dict) -> None:
     grid, skip_sweep = _resolve_grid(cluster_cfg, sweep_cfg, N)
     print(f"[s3] grid: {grid}  (skip_sweep={skip_sweep})")
 
-    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
-    import torch
-    torch.set_default_device("cpu")
+    from ..shared.device import setup_torch
+    setup_torch(cfg)
     from umap import UMAP
 
     print(f"[s3] UMAP fit (n_components={umap_n}, seed={seed})...")
