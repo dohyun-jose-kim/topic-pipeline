@@ -74,22 +74,15 @@ def _run_pubmed(cfg: dict, output_dir: Path) -> None:
     print(f"저장 → {out_path} ({len(records)} 편)")
 
 
-def _run_csv(cfg: dict, output_dir: Path) -> None:
-    """일반 CSV 어댑터 — 임의 텍스트 CSV → s1_meta.csv(S1_COLUMNS).
+def _emit_s1_from_df(df: pd.DataFrame, colmap: dict, output_dir: Path) -> None:
+    """임의 df + fetch.columns 매핑 → s1_meta.csv(S1_COLUMNS). csv/jsonl/dir/arxiv 공용.
 
-    fetch.input_csv(없으면 paths.input_pmid_csv) 를 읽고 fetch.columns 매핑(s1 스키마 ← 사용자
-    컬럼명)으로 변환. 본문 텍스트(text/abstract)는 필수. doc_id 없으면 1..N 정수를 pmid 로 합성
-    (병합키 계약 유지). mesh_terms 는 항상 빈 값(PubMed 전용 메타).
+    본문 텍스트(text/abstract) 필수. doc_id 없거나 비숫자/중복이면 1..N 정수 pmid 합성(+로그).
+    mesh_terms 는 빈 값(PubMed 전용 메타).
     """
-    fetch_cfg = cfg.get("fetch", {}) or {}
-    csv_path = Path(fetch_cfg.get("input_csv") or cfg["paths"]["input_pmid_csv"])
-    colmap = fetch_cfg.get("columns", {}) or {}
-
-    df = pd.read_csv(csv_path)
-    print(f"[s1] CSV 어댑터: {len(df)} 행 로드 ← {csv_path}")
+    colmap = colmap or {}
 
     def pick(schema_name: str):
-        """schema_name 에 매핑된 사용자 컬럼 Series (매핑 없으면 동명 컬럼). 없으면 None."""
         user = colmap.get(schema_name, schema_name)
         return df[user] if user in df.columns else None
 
@@ -97,9 +90,7 @@ def _run_csv(cfg: dict, output_dir: Path) -> None:
     if text is None:
         text = pick("abstract")
     if text is None:
-        raise ValueError(
-            f"본문 텍스트 컬럼 없음 — fetch.columns.text 로 지정하세요 (가용: {list(df.columns)})"
-        )
+        raise ValueError(f"본문 텍스트 컬럼 없음 — fetch.columns.text 로 지정 (가용: {list(df.columns)})")
 
     n = len(df)
     doc_id = pick("doc_id")
@@ -112,7 +103,7 @@ def _run_csv(cfg: dict, output_dir: Path) -> None:
             print(f"[s1] doc_id 비숫자 {n_bad}건 → 합성 ID(1..N) 로 대체")
             pmid = pd.Series(range(1, n + 1))
         elif pmid.duplicated().any():
-            # 중복 pmid 는 pmid 병합키(load_labeled_convention inner merge) 에서 fan-out → 합성으로 회피
+            # 중복 pmid 는 병합키(load_labeled_convention inner merge) fan-out → 합성으로 회피
             print(f"[s1] doc_id 중복 {int(pmid.duplicated().sum())}건 → 병합키 충돌 방지 합성 ID(1..N) 로 대체")
             pmid = pd.Series(range(1, n + 1))
     else:
@@ -121,7 +112,6 @@ def _run_csv(cfg: dict, output_dir: Path) -> None:
     year = pick("year")
     title = pick("title")
     keywords = pick("keywords")
-
     out = pd.DataFrame({
         "pmid": pmid.astype(int).to_numpy(),
         "year": year.to_numpy() if year is not None else "",
@@ -136,7 +126,92 @@ def _run_csv(cfg: dict, output_dir: Path) -> None:
     print(f"저장 → {out_path} ({len(out)} 행; mesh_terms 비움)")
 
 
-_SOURCES = {"pubmed": _run_pubmed, "csv": _run_csv}
+def _run_csv(cfg: dict, output_dir: Path) -> None:
+    """CSV 어댑터 — 임의 텍스트 CSV → s1_meta.csv. fetch.input_csv + fetch.columns 매핑."""
+    fetch_cfg = cfg.get("fetch", {}) or {}
+    csv_path = Path(fetch_cfg.get("input_csv") or cfg["paths"]["input_pmid_csv"])
+    df = pd.read_csv(csv_path)
+    print(f"[s1] CSV 어댑터: {len(df)} 행 로드 ← {csv_path}")
+    _emit_s1_from_df(df, fetch_cfg.get("columns", {}), output_dir)
+
+
+def _run_jsonl(cfg: dict, output_dir: Path) -> None:
+    """JSONL 어댑터 — 한 줄당 JSON 1개. fetch.input_jsonl(없으면 input_csv) + fetch.columns 매핑."""
+    fetch_cfg = cfg.get("fetch", {}) or {}
+    path = Path(fetch_cfg.get("input_jsonl") or fetch_cfg.get("input_csv") or cfg["paths"]["input_pmid_csv"])
+    df = pd.read_json(path, lines=True)
+    print(f"[s1] JSONL 어댑터: {len(df)} 행 로드 ← {path}")
+    _emit_s1_from_df(df, fetch_cfg.get("columns", {}), output_dir)
+
+
+def _run_dir(cfg: dict, output_dir: Path) -> None:
+    """폴더 어댑터 — fetch.input_dir 의 *.txt 각각을 한 문서로 (파일명=title/doc_id, 내용=text)."""
+    fetch_cfg = cfg.get("fetch", {}) or {}
+    d = Path(fetch_cfg.get("input_dir") or cfg["paths"]["input_pmid_csv"])
+    if not d.is_dir():
+        raise ValueError(f"fetch.input_dir 가 디렉토리가 아님: {d}")
+    pattern = fetch_cfg.get("glob", "*.txt")
+    files = sorted(d.glob(pattern))
+    if not files:
+        raise ValueError(f"{d} 에 {pattern} 파일 없음")
+    rows = [
+        {"doc_id": f.stem, "title": f.stem, "text": f.read_text(encoding="utf-8", errors="replace")}
+        for f in files
+    ]
+    print(f"[s1] DIR 어댑터: {len(rows)} 파일 로드 ← {d}/{pattern}")
+    _emit_s1_from_df(pd.DataFrame(rows), {"text": "text", "doc_id": "doc_id", "title": "title"}, output_dir)
+
+
+def _parse_arxiv_atom(xml_text: str) -> list[dict]:
+    """arXiv Atom 응답 → [{doc_id, title, abstract, year, keywords}]."""
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+    root = ET.fromstring(xml_text)
+    rows = []
+    for i, e in enumerate(root.findall("a:entry", ns), 1):
+        published = e.findtext("a:published", "", ns) or ""
+        cats = [c.get("term", "") for c in e.findall("a:category", ns)]
+        rows.append({
+            "doc_id": i,
+            "title": (e.findtext("a:title", "", ns) or "").strip(),
+            "abstract": (e.findtext("a:summary", "", ns) or "").strip(),
+            "year": published[:4],
+            "keywords": "; ".join(c for c in cats if c),
+        })
+    return rows
+
+
+def _run_arxiv(cfg: dict, output_dir: Path) -> None:
+    """arXiv API 어댑터 — fetch.arxiv_query 검색 → Atom 파싱 → s1_meta.csv."""
+    import requests
+
+    fetch_cfg = cfg.get("fetch", {}) or {}
+    query = fetch_cfg.get("arxiv_query") or fetch_cfg.get("query")
+    if not query:
+        raise ValueError("fetch.arxiv_query 필요 (arXiv 검색식, 예: 'cat:cs.CL AND ti:topic')")
+    max_results = int(fetch_cfg.get("max_results", 200))
+    print(f"[s1] arXiv 검색: {query!r} (max {max_results})")
+    resp = requests.get(
+        "http://export.arxiv.org/api/query",
+        params={"search_query": query, "start": 0, "max_results": max_results},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    rows = _parse_arxiv_atom(resp.text)
+    print(f"[s1] arXiv: {len(rows)} 건 파싱")
+    _emit_s1_from_df(
+        pd.DataFrame(rows),
+        {"text": "abstract", "doc_id": "doc_id", "title": "title", "year": "year", "keywords": "keywords"},
+        output_dir,
+    )
+
+
+_SOURCES = {
+    "pubmed": _run_pubmed,
+    "csv": _run_csv,
+    "jsonl": _run_jsonl,
+    "dir": _run_dir,
+    "arxiv": _run_arxiv,
+}
 
 
 def _parse_article(article: ET.Element) -> dict | None:

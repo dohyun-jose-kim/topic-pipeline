@@ -23,7 +23,10 @@ project:
   데이터 출처: null
 
 fetch:
-  # source: pubmed          # 'pubmed'(기본, PMID efetch) | 'csv'(임의 텍스트 CSV)
+  # source: pubmed          # 'pubmed'(PMID efetch) | 'csv' | 'jsonl' | 'dir'(폴더 *.txt) | 'arxiv'
+  # input_jsonl: "./DATA/corpus.jsonl"   # source: jsonl (한 줄당 JSON; fetch.columns 매핑 동일)
+  # input_dir: "./DATA/texts/"           # source: dir (*.txt 각 1문서, 파일명=title; glob 조정 가능)
+  # arxiv_query: "cat:cs.CL AND ti:topic" # source: arxiv (max_results)
   # ── csv 어댑터 (source: csv 일 때) ──────────────────────
   # input_csv: "./DATA/my_corpus.csv"   # 없으면 paths.input_pmid_csv 사용
   # columns:                 # s1 스키마 ← 사용자 CSV 컬럼명 매핑 (없으면 동명 컬럼 시도)

@@ -46,7 +46,7 @@ export NCBI_EMAIL="..."          # NCBI 예의 (선택)
 python DATA/fetch_pmids.py --query '"xyz"[tiab] AND "abc"[tiab]' --output DATA/<name>.csv
 ```
 
-**비-PubMed corpus**: `fetch.source: csv` + `fetch.columns`(text/doc_id/year/title/keywords 매핑)로 임의 텍스트 CSV 사용 가능 (doc_id 없으면 1..N 정수 pmid 합성, mesh 비움). 상세는 `default_config.yaml` 의 `fetch:` 주석.
+**비-PubMed corpus**: `fetch.source` = `csv` | `jsonl` | `dir`(폴더 *.txt, 파일명=title) | `arxiv`(쿼리). 모두 `fetch.columns` 매핑으로 `S1_COLUMNS` 스키마 정규화(doc_id 없거나 비숫자/중복이면 1..N 합성). 상세는 `default_config.yaml` 의 `fetch:` 주석.
 
 ---
 
