@@ -16,10 +16,11 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-STEPS = ["fetch", "embed", "cluster", "enrich", "label", "label-relevance", "timeseries", "report"]
+STEPS = ["fetch", "preprocess", "embed", "cluster", "enrich", "label", "label-relevance", "timeseries", "report"]
 
 STEP_MODULES: dict[str, str | None] = {
     "fetch": "topic_pipeline.steps.s1_fetch",            # Phase 4
+    "preprocess": "topic_pipeline.steps.s0_preprocess",  # M6 T1-2 (기본 off)
     "embed": "topic_pipeline.steps.s2_embed",            # Phase 5a
     "cluster": "topic_pipeline.steps.s3_cluster",        # Phase 5b
     "enrich": "topic_pipeline.steps.s4_enrich",          # Phase 3a
@@ -32,6 +33,7 @@ STEP_MODULES: dict[str, str | None] = {
 # step 별 선행 산출물(output_dir 내) — 사전 검증용 (T2-8). fetch 는 input CSV 를 별도 확인.
 STEP_REQUIRES: dict[str, list[str]] = {
     "fetch": [],
+    "preprocess": ["s1_meta.csv"],
     "embed": ["s1_meta.csv"],
     "cluster": ["s2_embeddings.npy", "s2_meta_for_embed.csv"],
     "enrich": ["s3_selected_model.txt", "s3_labels.csv", "s2_meta_for_embed.csv"],
@@ -45,6 +47,7 @@ STEP_REQUIRES: dict[str, list[str]] = {
 # step 별 주요 산출물 — "같은 run 의 앞 step 이 생성" 판정용.
 STEP_PRODUCES: dict[str, list[str]] = {
     "fetch": ["s1_meta.csv"],
+    "preprocess": ["s0_meta_clean.csv"],
     "embed": ["s2_embeddings.npy", "s2_meta_for_embed.csv"],
     "cluster": ["s3_labels.csv", "s3_selected_model.txt", "s3_metrics.csv"],
     "enrich": ["s4_keywords_comparison.csv"],
