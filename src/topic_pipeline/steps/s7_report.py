@@ -349,6 +349,7 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     topic_order = data["topic_order"]
     color_map = data["color_map"]
     taxonomy = load_taxonomy(cfg)
+    n_groups = len(taxonomy["groups"])
     name_map = data["name_map"]
     en_map = data["en_map"]
     desc_map = data["desc_map"]
@@ -489,7 +490,7 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     )
     chart_umap_relevance = _make_plotly_umap(
         umap_2d, df, color_map, name_map, topic_order,
-        title="UMAP + HDBSCAN Clustering (3그룹)",
+        title=f"UMAP + HDBSCAN Clustering ({n_groups}그룹)",
     )
 
     # §5.1 timeseries: embed s6 PNGs if exist
@@ -678,7 +679,7 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
 <h3>5.2 직접 관련 (1~3위) 키워드 트렌드</h3>
 {trend_stub}
 
-<h2>6. 생리적 기능성 3그룹 분류</h2>
+<h2>6. 생리적 기능성 {n_groups}그룹 분류</h2>
 <div class="note-box">{report.get('relevance_group_note', '').strip()}</div>
 <p><strong>색상 구분</strong>: {color_legend}</p>
 <table>
@@ -688,7 +689,7 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
   <tbody>{relevance_rows_html}</tbody>
 </table>
 
-<h2>7. 3그룹 재색상화 UMAP</h2>
+<h2>7. {n_groups}그룹 재색상화 UMAP</h2>
 <img src="{_img_to_b64(fig_dir / 'umap_relevance.png')}" alt="UMAP Relevance" class="chart-img">
 <h4 style="color:#2e86c1; margin-top:24px;">INTERACTIVE CHART</h4>
 <div class="chart-section">{chart_umap_relevance}</div>
