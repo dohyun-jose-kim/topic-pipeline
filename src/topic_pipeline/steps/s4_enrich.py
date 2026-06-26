@@ -127,6 +127,12 @@ def _apply_keybert(topic_model, docs, stop_words="english"):
 
 def _aggregate_meta_keywords(labeled_df: pd.DataFrame, kw_df: pd.DataFrame, top_n: int = TOP_N):
     print("[3] Author Keywords / MeSH 빈도 집계 중...")
+    # 비-PubMed corpus 는 author_keywords / mesh_terms_v2 가 없을 수 있음 → 빈 값으로 graceful 처리.
+    kw_df = kw_df.copy()
+    for col in ("author_keywords", "mesh_terms_v2"):
+        if col not in kw_df.columns:
+            print(f"  [s4] '{col}' 컬럼 없음 — 빈 값으로 집계 (비-PubMed corpus)")
+            kw_df[col] = ""
     merged = labeled_df[["pmid", "topic_label"]].merge(
         kw_df[["pmid", "author_keywords", "mesh_terms_v2"]],
         on="pmid",
