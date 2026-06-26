@@ -8,14 +8,15 @@
 
 ## 설치
 
-이 repo 는 `wk7trf_conda` env (week_7 에서 생성) 를 재사용합니다. env 는 **activate 하지 않고** Python 인터프리터 절대경로를 직접 호출합니다.
+editable 설치 — `pyproject.toml` 의 console-script `topic-pipeline` 제공:
 
 ```bash
-PY=/Users/inco/01_Projects/00_Tasks/ifc_ojt_dh.kim/week_7/wk7_Transformer/.wk7trf_conda/bin/python
-$PY -m topic_pipeline.cli --help                   # 동작 확인
+pip install -e .                          # 일반 설치 (의존성 자동 해결)
+# 재현 핀(권장): pip install -r requirements.txt && pip install -e . --no-deps
+topic-pipeline --help                     # 동작 확인
 ```
 
-이후 사용법 예시는 위 `$PY` 를 정의했다고 가정합니다.
+이후 사용법 예시는 `topic-pipeline` 엔트리포인트를 사용합니다 (`python -m topic_pipeline.cli` 도 동일).
 
 신규 환경 (다른 머신·CI·배포) 세팅: [`Docs/NEW_ENV_SETUP.md`](./Docs/NEW_ENV_SETUP.md) 참고.
 
@@ -30,7 +31,7 @@ export NCBI_EMAIL="..."          # NCBI 예의 (선택)
 
 ## DATA/ — 입력 데이터
 
-90_CLI 는 self-contained. `DATA/` 에 PMID CSV 와 수집 스크립트 포함:
+이 repo 는 self-contained. `DATA/` 에 PMID CSV 와 수집 스크립트 포함:
 
 | 파일 | 용도 |
 |---|---|
@@ -40,7 +41,7 @@ export NCBI_EMAIL="..."          # NCBI 예의 (선택)
 
 새 도메인:
 ```bash
-$PY DATA/fetch_pmids.py --query '"xyz"[tiab] AND "abc"[tiab]' --output DATA/<name>.csv
+python DATA/fetch_pmids.py --query '"xyz"[tiab] AND "abc"[tiab]' --output DATA/<name>.csv
 ```
 
 ---
@@ -49,46 +50,46 @@ $PY DATA/fetch_pmids.py --query '"xyz"[tiab] AND "abc"[tiab]' --output DATA/<nam
 
 **기본 실행** (default_config.yaml)
 ```bash
-$PY -m topic_pipeline.cli                     # 전체 8 step
-$PY -m topic_pipeline.cli fetch               # 특정 step 만
-$PY -m topic_pipeline.cli report              # s7 재렌더 (앞 step 은 cache 사용)
-$PY -m topic_pipeline.cli timeseries report   # 여러 step 연속
+topic-pipeline                     # 전체 8 step
+topic-pipeline fetch               # 특정 step 만
+topic-pipeline report              # s7 재렌더 (앞 step 은 cache 사용)
+topic-pipeline timeseries report   # 여러 step 연속
 ```
 
 **새 도메인**
 ```bash
-$PY DATA/fetch_pmids.py --query '"sleep"[tiab]' --output DATA/sleep.csv
-$PY -m topic_pipeline.cli --input-pmid DATA/sleep.csv --relevance-criterion "cognitive function"
+python DATA/fetch_pmids.py --query '"sleep"[tiab]' --output DATA/sleep.csv
+topic-pipeline --input-pmid DATA/sleep.csv --relevance-criterion "cognitive function"
 # project.주제/데이터 출처 는 파일명·criterion·실제 year 범위로 자동 합성 (config 가 null 이면)
 ```
 
 **profile 분리**
 ```bash
 cp default_config.yaml my_sleep.yaml   # 편집 후
-$PY -m topic_pipeline.cli --config my_sleep.yaml
+topic-pipeline --config my_sleep.yaml
 ```
 
 **재현성·디버깅**
 ```bash
-$PY -m topic_pipeline.cli --seed 42                    # 동일 시드
-$PY -m topic_pipeline.cli --force-retrain cluster      # s3 캐시 무시
-$PY -m topic_pipeline.cli --umap-dim 5 cluster         # UMAP 5D 실험
-$PY -m topic_pipeline.cli --min-topic-size 27 cluster  # sweep 생략 직행
+topic-pipeline --seed 42                    # 동일 시드
+topic-pipeline --force-retrain cluster      # s3 캐시 무시
+topic-pipeline --umap-dim 5 cluster         # UMAP 5D 실험
+topic-pipeline --min-topic-size 27 cluster  # sweep 생략 직행
 ```
 
 **모델 교체**
 ```bash
-$PY -m topic_pipeline.cli --label-model claude-opus-4-20250514 label label-relevance
-$PY -m topic_pipeline.cli --embed-model sentence-transformers/all-MiniLM-L6-v2 embed   # → s2 재계산
+topic-pipeline --label-model claude-opus-4-20250514 label label-relevance
+topic-pipeline --embed-model sentence-transformers/all-MiniLM-L6-v2 embed   # → s2 재계산
 ```
 
 **트렌드·리포트 문구**
 ```bash
-$PY -m topic_pipeline.cli --trend-top-n 10 timeseries report
-$PY -m topic_pipeline.cli --project-theme "운동생리 연구" --project-source "PubMed 2015~2025" report
+topic-pipeline --trend-top-n 10 timeseries report
+topic-pipeline --project-theme "운동생리 연구" --project-source "PubMed 2015~2025" report
 ```
 
-전체 플래그: `$PY -m topic_pipeline.cli --help`.
+전체 플래그: `topic-pipeline --help`.
 
 ---
 

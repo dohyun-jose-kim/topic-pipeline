@@ -1,9 +1,8 @@
-# 신규 환경에서 90_CLI 돌리기
+# 신규 환경에서 topic-pipeline 돌리기
 
 완전히 새 머신 또는 새 env 에서 `topic-pipeline` 을 처음 세팅하는 5 단계.
 
-> 이 repo 본체는 `wk7trf_conda` env 를 재사용합니다 (README §설치 참고).
-> 이 문서는 **그 env 를 못 쓰는 상황** — 새 머신, 다른 파이썬, CI, 동료 배포 — 을 위한 것.
+> 깨끗한 환경(새 머신·다른 파이썬·CI·동료 배포)에서 `pip install -e .` 로 세팅한다.
 
 ---
 
@@ -27,7 +26,7 @@ conda create -n tp python=3.12 -y && conda activate tp
 ## ② venv 생성 (conda 쓰면 건너뛰기)
 
 ```bash
-cd /path/to/ifc_ojt_dh.kim/week_f/90_CLI
+cd <repo>          # 예: 01_Topic_Modeling_ver3.0.1
 python3.12 -m venv .venv
 source .venv/bin/activate
 ```
@@ -82,5 +81,5 @@ topic-pipeline --input-pmid DATA/sleep_quality-9999.csv fetch
 ## 주의사항
 
 - **Apple Silicon (M1~M4)**: 대부분 arm64 whl 제공. `scipy`, `numba` (umap-learn 의존) 도 py3.12 부터는 문제 없음. py3.11 에선 간혹 build-from-source 로 빠지기도.
-- **CUDA 없음**: embed 단계 (`sentence-transformers`) 는 CPU 로 5,000 건 기준 3~10 분. GPU 붙이려면 `torch` CUDA 빌드를 별도 설치해야 함 (`requirements.txt` 는 CPU 기준 가능성 큼 — 필요시 확인).
-- **pyproject.toml 의존성 범위가 느슨함** (`>=` 만). (A) 로 깔면 몇 달 뒤 BERTopic 0.17 / sentence-transformers 3.x 가 들어와 깨질 수 있음. (B) 권장 이유.
+- **CUDA/GPU**: embed 단계 (`sentence-transformers`) 는 CPU 로 5,000 건 기준 3~10 분. GPU 사용 시 `pip install -e .[gpu]` (또는 플랫폼에 맞는 `torch` 빌드) 로 가속.
+- **의존성 범위**: pyproject 는 floor+major-cap (`>=x,<x+1`) 로 고정되어 latest 자동설치 breakage 위험이 줄었음. 정확한 재현은 여전히 (B) `requirements.txt` 핀 권장.
