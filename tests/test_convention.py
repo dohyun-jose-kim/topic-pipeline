@@ -18,3 +18,10 @@ def test_resolve_embed_model_default():
 
 def test_resolve_embed_model_override():
     assert convention.resolve_embed_model({"embed": {"model_name": "foo/bar"}}) == "foo/bar"
+
+
+def test_resolve_stop_words():
+    assert convention.resolve_stop_words({}) == "english"
+    assert convention.resolve_stop_words({"embed": {}}) == "english"
+    assert convention.resolve_stop_words({"embed": {"stop_words": None}}) is None
+    assert convention.resolve_stop_words({"embed": {"stop_words": ["a", "b"]}}) == ["a", "b"]

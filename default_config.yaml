@@ -41,6 +41,7 @@ fetch:
 
 embed:
   model_name: "pritamdeka/S-PubMedBert-MS-MARCO"
+  # stop_words: english    # 'english'(기본, sklearn 내장) | null(제거 안 함, CJK/다국어) | [단어,...]
   cache: true
 
 cluster:

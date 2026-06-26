@@ -17,7 +17,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..shared.convention import load_labeled_convention, read_selected_model_dir, resolve_embed_model
+from ..shared.convention import (
+    load_labeled_convention,
+    read_selected_model_dir,
+    resolve_embed_model,
+    resolve_stop_words,
+)
 
 TOP_N = 10
 
@@ -47,7 +52,7 @@ def run(cfg: dict) -> None:
             output_dir, embed_model_name
         )
 
-    topic_model = _apply_keybert(topic_model, docs)
+    topic_model = _apply_keybert(topic_model, docs, resolve_stop_words(cfg))
     meta_keywords = _aggregate_meta_keywords(labeled_df, kw_df)
 
     out_path = output_dir / "s4_keywords_comparison.csv"
@@ -97,7 +102,7 @@ def _load_all_convention(output_dir: Path, embed_model_name: str):
     return topic_model, docs, labeled_df, kw_df
 
 
-def _apply_keybert(topic_model, docs):
+def _apply_keybert(topic_model, docs, stop_words="english"):
     from bertopic.representation import KeyBERTInspired
     from sklearn.feature_extraction.text import CountVectorizer
 
@@ -112,7 +117,7 @@ def _apply_keybert(topic_model, docs):
     topic_model.update_topics(
         docs,
         representation_model={"KeyBERT": KeyBERTInspired()},
-        vectorizer_model=CountVectorizer(stop_words="english", ngram_range=(1, 3)),
+        vectorizer_model=CountVectorizer(stop_words=stop_words, ngram_range=(1, 3)),
     )
 
     topic_model.topic_aspects_["c-TF-IDF"] = original_ctfidf

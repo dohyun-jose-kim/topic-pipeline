@@ -42,3 +42,11 @@ DEFAULT_EMBED_MODEL = "pritamdeka/S-PubMedBert-MS-MARCO"
 def resolve_embed_model(cfg) -> str:
     """embed.model_name (없으면 생의학 기본 모델 DEFAULT_EMBED_MODEL)."""
     return (cfg.get("embed") or {}).get("model_name") or DEFAULT_EMBED_MODEL
+
+
+def resolve_stop_words(cfg):
+    """embed.stop_words: 'english'(기본, sklearn 내장) | None(제거 안 함, CJK/다국어) | [단어,...].
+
+    CountVectorizer 가 셋 다 그대로 받는다. s3/s4 의 하드코딩 'english' 통합.
+    """
+    return (cfg.get("embed") or {}).get("stop_words", "english")

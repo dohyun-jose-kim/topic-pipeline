@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from ..shared.convention import resolve_stop_words
 from ..shared.fonts import setup_mpl
 
 
@@ -68,6 +69,7 @@ def run(cfg: dict) -> None:
     umap_n = cluster_cfg.get("umap_n_components", 2)
     force_retrain = cluster_cfg.get("force_retrain", False)
     reassign_outliers = cluster_cfg.get("reassign_outliers", False)
+    stop_words = resolve_stop_words(cfg)
     sweep_cfg = cluster_cfg.get("sweep", {}) or {}
     cutoff_cfg = sweep_cfg.get("cutoff", {}) or {}
 
@@ -110,7 +112,7 @@ def run(cfg: dict) -> None:
     sweep_results = []
     for i, mts in enumerate(grid, 1):
         print(f"\n[s3] ({i}/{len(grid)}) fit mts={mts} ...")
-        model, topics = _train_one(docs, embeddings, umap_embeddings, mts, reassign_outliers)
+        model, topics = _train_one(docs, embeddings, umap_embeddings, mts, reassign_outliers, stop_words)
         metrics = _measure_metrics(topics, umap_embeddings)
         passed, reasons = (True, []) if skip_sweep else _check_cutoff(metrics, cutoff_cfg)
         sweep_results.append({
@@ -203,11 +205,11 @@ def _default_grid(N: int) -> list[int]:
 
 # ── 단일 학습 ──────────────────────────────────────────────────
 
-def _train_one(docs, embeddings, umap_reduced, mts, reassign_outliers):
+def _train_one(docs, embeddings, umap_reduced, mts, reassign_outliers, stop_words="english"):
     from bertopic import BERTopic
     from sklearn.feature_extraction.text import CountVectorizer
 
-    vectorizer = CountVectorizer(stop_words="english")
+    vectorizer = CountVectorizer(stop_words=stop_words)
     topic_model = BERTopic(
         umap_model=IdentityReducer(umap_reduced),
         vectorizer_model=vectorizer,
