@@ -140,6 +140,28 @@
 
 ---
 
+## 6. ver3.0.1 M6 — 품질 개선 capability (opt-in) 추가 (2026-06-26)
+
+ver3.0.1 개선 플랜(`Docs/v3_improvement_plan.md`) M6. #1/#2/#4 에 대해 **knob 을 추가하되 기본값은 현행 유지**
+(byte-identical). 출력을 바꾸는 default 플립은 사용자 실제 env 의 **경험적 A/B 검증 후** 결정한다
+(이 환경엔 torch/bertopic·데이터·API키 부재로 클러스터 출력 검증 불가 — 순수 함수/기본경로만 단위 검증).
+
+- **#1 전처리** → *부분 해결*. `shared/preprocess.py`(clean_abstract/clean_series — **근사**: 원본
+  tokenize_pipeline.py 부재 verified) + `s0_preprocess` step 신설. `preprocess.enabled`(기본 false)=true 시
+  s0 가 `s0_meta_clean.csv`(abstract_clean) 생성, s2/s3 가 우선 소비(s4 rename 충돌 가드 포함).
+  **parity 는 가정 금지 — A/B 검증 대상.** (커밋 `2d1d44a`/`377f3c9`/`db91cee`)
+- **#4 sweep tie-break** → *부분 해결*. `cluster.sweep.tie_break`('median_low' 기본·현행 | 'target') +
+  `target_n_topics`(기본 10). target 모드는 n_topics 가 목표에 가장 가까운 후보 선택. (커밋 `c841e84`)
+  interactive confirm gate 는 dispatcher/CI 비친화로 **미구현**(비대화형 권장).
+- **#2 UMAP 차원** → *결정 보류*. `--umap-dim 5`/config 로 5D 사용 가능(기존). 기본 default 는 **2D 유지**
+  (5D 플립은 출력 변경 → A/B 후 결정). 캐시 키 d{dim} 으로 2D/5D 모델 비충돌.
+- **guided 모델링** 신설(plan §E): `cluster.seed_topic_list`(기본 미설정=비지도→byte-identical). (커밋 `b18c5da`)
+
+**M6 잔여(미구현):** c_v coherence / topic diversity 지표(추가형이나 s3 내부·gensim optional — 후속);
+default 플립(전처리 on / 5D / target-n)은 실 env A/B 후. cosmetic: s5 요약 bullet taxonomy화, s7 mpl 타이틀(L254).
+
+---
+
 ## 문서 운영 원칙
 
 - 새 이슈 발견 시 **section 번호 매겨 append**
