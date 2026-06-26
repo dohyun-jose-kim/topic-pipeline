@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..shared.convention import resolve_domain
-from ..shared.llm import call_claude
+from ..shared.llm import generate
 
 
 def run(cfg: dict) -> None:
@@ -27,14 +27,16 @@ def run(cfg: dict) -> None:
 
     in_path = output_dir / "s4_keywords_comparison.csv"
     out_path = output_dir / "s5_labels.csv"
-    model = cfg["label"]["model"]
 
     df = pd.read_csv(in_path)
     print(f"[Data] {len(df)} topics 로드 ({in_path})")
 
-    prompt = _build_prompt(df, resolve_domain(cfg))
-    result_text = call_claude(prompt, model)
-    labels = _parse_json_labels(result_text)
+    provider = (cfg.get("label") or {}).get("provider", "claude")
+    if provider == "keywords":
+        print("[s5] provider=keywords — LLM 없이 키워드 상위어로 라벨 생성")
+        labels = _keyword_labels(df)
+    else:
+        labels = _parse_json_labels(generate(_build_prompt(df, resolve_domain(cfg)), cfg))
 
     labels_df = pd.DataFrame(labels)
     merged = df.merge(labels_df, on="topic", how="left")
@@ -95,3 +97,30 @@ def _parse_json_labels(text: str) -> list[dict]:
         if match:
             return json.loads(match.group())
         raise ValueError(f"JSON 파싱 실패. 원본 응답:\n{text}")
+
+
+def _top_keywords(row) -> list[str]:
+    """c-TF-IDF(없으면 KeyBERT) 상위어 리스트 ('; ' 구분 파싱)."""
+    for col in ("c-TF-IDF", "KeyBERT"):
+        val = str(row.get(col, "") or "").strip()
+        if val and val.lower() != "nan":
+            return [k.strip() for k in val.split(";") if k.strip()]
+    return []
+
+
+def _keyword_labels(df: pd.DataFrame) -> list[dict]:
+    """LLM 없이 키워드 상위어로 라벨 생성 (provider=keywords; 무키·오프라인).
+
+    label_en/kr = 상위 3개 키워드, description = 상위 6개. s5_labels.csv 스키마는 동일.
+    """
+    labels = []
+    for _, r in df.iterrows():
+        kws = _top_keywords(r)
+        label = ", ".join(kws[:3]) if kws else f"Topic {int(r['topic'])}"
+        labels.append({
+            "topic": int(r["topic"]),
+            "label_en": label,
+            "label_kr": label,
+            "description": ("주요 키워드: " + ", ".join(kws[:6])) if kws else "",
+        })
+    return labels
