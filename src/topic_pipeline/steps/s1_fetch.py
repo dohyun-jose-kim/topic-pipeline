@@ -107,7 +107,13 @@ def _run_csv(cfg: dict, output_dir: Path) -> None:
         doc_id = pick("pmid")
     if doc_id is not None:
         pmid = pd.to_numeric(doc_id, errors="coerce")
-        if pmid.isna().any():
+        n_bad = int(pmid.isna().sum())
+        if n_bad:
+            print(f"[s1] doc_id 비숫자 {n_bad}건 → 합성 ID(1..N) 로 대체")
+            pmid = pd.Series(range(1, n + 1))
+        elif pmid.duplicated().any():
+            # 중복 pmid 는 pmid 병합키(load_labeled_convention inner merge) 에서 fan-out → 합성으로 회피
+            print(f"[s1] doc_id 중복 {int(pmid.duplicated().sum())}건 → 병합키 충돌 방지 합성 ID(1..N) 로 대체")
             pmid = pd.Series(range(1, n + 1))
     else:
         pmid = pd.Series(range(1, n + 1))

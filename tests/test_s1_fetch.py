@@ -1,5 +1,6 @@
 """s1_fetch ingest 디스패치 검증 (네트워크 없이 — 계약/디스패치만)."""
 
+import pandas as pd
 import pytest
 
 from topic_pipeline.steps import s1_fetch
@@ -61,6 +62,42 @@ def test_csv_adapter_synthesizes_pmid(tmp_path):
     out = pd.read_csv(tmp_path / "s1_meta.csv")
     assert out["pmid"].tolist() == [1, 2, 3]
     assert list(out.columns) == s1_fetch.S1_COLUMNS
+
+
+def test_csv_adapter_duplicate_docid_synthesizes(tmp_path):
+    src = tmp_path / "c.csv"
+    pd.DataFrame({"id": [100, 100, 200], "abstract": ["a", "b", "c"]}).to_csv(src, index=False)
+    cfg = {
+        "paths": {"output_dir": str(tmp_path), "input_pmid_csv": str(src)},
+        "fetch": {"source": "csv", "columns": {"doc_id": "id"}},
+    }
+    s1_fetch.run(cfg)
+    out = pd.read_csv(tmp_path / "s1_meta.csv")
+    assert out["pmid"].tolist() == [1, 2, 3]  # 중복 → 합성(fan-out 방지)
+
+
+def test_csv_adapter_nonnumeric_docid_synthesizes(tmp_path):
+    src = tmp_path / "c.csv"
+    pd.DataFrame({"id": ["PMC1", "x2", "y3"], "abstract": ["a", "b", "c"]}).to_csv(src, index=False)
+    cfg = {
+        "paths": {"output_dir": str(tmp_path), "input_pmid_csv": str(src)},
+        "fetch": {"source": "csv", "columns": {"doc_id": "id"}},
+    }
+    s1_fetch.run(cfg)
+    out = pd.read_csv(tmp_path / "s1_meta.csv")
+    assert out["pmid"].tolist() == [1, 2, 3]
+
+
+def test_csv_adapter_unique_docid_preserved(tmp_path):
+    src = tmp_path / "c.csv"
+    pd.DataFrame({"id": [10, 20], "abstract": ["a", "b"]}).to_csv(src, index=False)
+    cfg = {
+        "paths": {"output_dir": str(tmp_path), "input_pmid_csv": str(src)},
+        "fetch": {"source": "csv", "columns": {"doc_id": "id"}},
+    }
+    s1_fetch.run(cfg)
+    out = pd.read_csv(tmp_path / "s1_meta.csv")
+    assert out["pmid"].tolist() == [10, 20]  # 유일 → 보존(회귀 가드)
 
 
 def test_csv_adapter_missing_text_raises(tmp_path):
