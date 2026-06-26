@@ -87,6 +87,22 @@ def load_taxonomy(cfg) -> dict:
     return {"groups": list(tax), "outlier": COLOR_GROUPS[3]}
 
 
+def build_color_map(topic_order: list[int], taxonomy: dict | None = None) -> dict[int, str]:
+    """관련도 순 topic_order → {topic_id: hex}. s6/s7 의 중복 로직 통합 + N그룹 taxonomy 일반화.
+
+    기본(3그룹)은 relevance_split 분포(예: n=10 → 3/4/3)를 그대로 써서 byte-identical.
+    그 외 k그룹은 split_ranks(n, k) 로 분할.
+    """
+    groups = (taxonomy or load_taxonomy({}))["groups"]
+    n = len(topic_order)
+    k = len(groups)
+    counts = list(relevance_split(n)) if k == 3 else split_ranks(n, k)
+    colors: list[str] = []
+    for g, c in zip(groups, counts):
+        colors += get_colors(g, c)
+    return {topic: colors[i] for i, topic in enumerate(topic_order) if i < len(colors)}
+
+
 def _smoke_test() -> None:
     """N=1/3/5/10 보간 검증 (PLAN-v2 §8 Phase 2a 기준)."""
     direct = COLOR_GROUPS[0]

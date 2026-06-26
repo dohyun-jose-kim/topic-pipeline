@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ..shared.colors import COLOR_GROUPS, get_colors, relevance_split
+from ..shared.colors import COLOR_GROUPS, build_color_map, load_taxonomy
 from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.relevance import parse_relevance_order
@@ -51,7 +51,7 @@ def run(cfg: dict) -> None:
     topic_order = parse_relevance_order(relevance_md)
 
     name_map = dict(zip(labels["topic"], labels["label_kr"]))
-    color_map = _build_color_map(topic_order)
+    color_map = build_color_map(topic_order, load_taxonomy(cfg))
 
     freq = df.groupby(["year", "topic_label"]).size().reset_index(name="count")
     pivot = freq.pivot(index="year", columns="topic_label", values="count").fillna(0).astype(int)
@@ -82,14 +82,6 @@ def run(cfg: dict) -> None:
             df, topic_order, name_map, color_map,
             trend_cfg, ts_cfg, output_dir, fig_dir,
         )
-
-
-def _build_color_map(topic_order: list[int]) -> dict[int, str]:
-    """n 토픽을 3등분 (direct/indirect/low) 후 각 그룹 내 range 보간. n=10 → 3/4/3 하위호환."""
-    n_direct, n_indirect, n_low = relevance_split(len(topic_order))
-    direct, indirect, low = COLOR_GROUPS[0], COLOR_GROUPS[1], COLOR_GROUPS[2]
-    colors = get_colors(direct, n_direct) + get_colors(indirect, n_indirect) + get_colors(low, n_low)
-    return {topic: colors[i] for i, topic in enumerate(topic_order)}
 
 
 def _save_csv(pivot: pd.DataFrame, name_map: dict, out_path: Path) -> None:

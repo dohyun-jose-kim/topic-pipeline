@@ -72,3 +72,21 @@ def test_load_taxonomy_custom():
     assert len(tax["groups"]) == 1
     assert tax["groups"][0]["label"] == "high"
     assert tax["outlier"]["label"] == "Outlier"  # 기본 outlier 유지
+
+
+# ── build_color_map (T3-7b) ──
+
+def test_build_color_map_default_3group_endpoints():
+    order = [5, 4, 1, 2, 7, 9, 8, 6, 3, 0]  # n=10 → relevance_split (3,4,3)
+    cm = colors.build_color_map(order)
+    assert len(cm) == 10
+    assert cm[5] == colors.COLOR_GROUPS[0]["start"]   # rank1 = direct start
+    assert cm[0] == colors.COLOR_GROUPS[2]["end"]     # rank10 = low end
+
+
+def test_build_color_map_custom_2group():
+    tax = {"groups": [colors.COLOR_GROUPS[0], colors.COLOR_GROUPS[2]],
+           "outlier": colors.COLOR_GROUPS[3]}
+    cm = colors.build_color_map([1, 2, 3, 4], tax)
+    assert len(cm) == 4
+    assert cm[1] == colors.COLOR_GROUPS[0]["start"]

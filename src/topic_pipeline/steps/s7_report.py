@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ..shared.colors import COLOR_GROUPS, get_colors, relevance_split
+from ..shared.colors import COLOR_GROUPS, build_color_map, get_colors, load_taxonomy, relevance_split
 from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.html_common import CSS
@@ -124,7 +124,7 @@ def _load_data(cfg: dict, output_dir: Path) -> dict:
     keywords_df = pd.read_csv(keywords_csv)
     topic_order = parse_relevance_order(relevance_md)
 
-    color_map = _build_color_map(topic_order)
+    color_map = build_color_map(topic_order, load_taxonomy(cfg))
     name_map = dict(zip(labels_df["topic"], labels_df["label_kr"]))
     en_map = dict(zip(labels_df["topic"], labels_df["label_en"]))
     desc_map = dict(zip(labels_df["topic"], labels_df["description"]))
@@ -145,14 +145,6 @@ def _load_data(cfg: dict, output_dir: Path) -> dict:
         "desc_map": desc_map,
         "metrics": metrics,
     }
-
-
-def _build_color_map(topic_order: list[int]) -> dict[int, str]:
-    """n 토픽 3등분 range 보간. n=10 → 3/4/3 하위호환."""
-    n_direct, n_indirect, n_low = relevance_split(len(topic_order))
-    direct, indirect, low = COLOR_GROUPS[0], COLOR_GROUPS[1], COLOR_GROUPS[2]
-    colors = get_colors(direct, n_direct) + get_colors(indirect, n_indirect) + get_colors(low, n_low)
-    return {topic: colors[i] for i, topic in enumerate(topic_order)}
 
 
 def _load_or_compute_umap(
