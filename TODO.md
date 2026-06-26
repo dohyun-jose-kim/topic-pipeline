@@ -136,13 +136,18 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | (M2 로그) | `4745e58` | docs: TODO v3 진행 로그 |
 | 2026-06-26 | **M3** LLM-1 | `4b01cbc` | refactor: 중복 _call_claude → shared/llm.py +retry. s5 두 step 재지정 |
 | 2026-06-26 | **M3** T2-9 | `32adac4` | refactor: device 강제 → shared/device.setup_torch 통합(s2/s3/s4) + batch_size config화 |
+| 2026-06-26 | (M3 로그) | `4a57fd8` | docs: TODO v3 진행 로그 (기반 M1~M3 완료) |
+| 2026-06-26 | **M4** T3-1 | `33b6436` | refactor: s1_fetch ingest 소스 디스패치 + S1_COLUMNS 계약 (PubMed byte-identical) |
+| 2026-06-26 | **M4** T3-2 | `a7a38b8` | feat: CSV-of-text ingest 어댑터 (합성 정수 pmid, mesh 비움). 순수 pandas 완전 검증 |
+| 2026-06-26 | **M4** T3-3 | `35d3337` | refactor: embed 모델 resolve_embed_model 통합 + stale-cache 경고 |
+| 2026-06-26 | **M4** T3-4 | `3c95892` | refactor: stop_words resolve_stop_words config화 (english/null/list) |
 
-> 검증: 스크래치 venv(경량 deps)에서 **pytest 28 passed** + `--list-steps`/`--help`/fail-fast 기능 확인.
-> **byte-identical 회귀(기본 config 전체 실행)는 사용자 실제 env(torch/bertopic+데이터+API키) 필요** — 미수행.
-> **기반(M1~M3) 완료.** 이후 M4~M6 은 출력에 영향 주는 기능 작업.
+> 검증: 스크래치 venv(경량 deps)에서 **pytest 37 passed**. M4 ingest/CSV·config 헬퍼는 순수 함수라
+> 네트워크 없이 단위 검증됨. **byte-identical 회귀(기본 config 전체 실행)는 사용자 실제 env 필요** — 미수행.
+> 기반(M1~M3) 완료. M4 진행 중 (baby step: T3-1~4 ✅).
 
-**다음**: M4 (범용 corpus 대응) — T3-1/2 ingest 어댑터(S1_COLUMNS 고정+CSV), T3-3 embed 모델 config(resolve_embed_model),
-T3-4 stop_words config, T3-5 MeSH/Author-KW optional, T3-6 LLM 프롬프트 도메인 템플릿화(rule#2 정수 regex 불가침).
+**다음**: M4 잔여 — **T3-5** (s4 MeSH/Author-KW optional, graceful empty) → **T3-6** (s5 LLM 프롬프트
+도메인 템플릿화: `수산부산물 5,590편` 리터럴 제거·df 카운트 사용; **rule#2 정수 Topic regex 불가침**). 이후 M5/M6.
 
 ---
 
