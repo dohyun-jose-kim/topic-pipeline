@@ -7,6 +7,10 @@ paths:
   output_dir: "./outputs"
   input_pmid_csv: "./DATA/aqua_byproducts-5590.csv"
 
+compute:
+  device: cpu            # 'cpu'(기본) | 'cuda' | 'mps' | 'auto'(가용 가속기 자동 선택)
+  embed_batch_size: 16   # s2_embed SentenceTransformer 인코딩 배치 크기
+
 project:
   # null 이면 s7_report 가 자동 합성:
   #   주제 = "<input_pmid_csv 파일명 (확장자 제거)> 의 <relevance_criterion> 관련 연구 동향"
