@@ -1,0 +1,81 @@
+# topic-pipeline CLI 의 기본 config.
+# 모든 키는 이 파일 (또는 `--config <다른 yaml>`) 에서 지정. 일부는 CLI 플래그로도
+# override 가능 (`topic-pipeline --help` 참조).
+# 각 step 은 앞선 step 산출물을 {output_dir} 에서 자동으로 읽음 (convention).
+
+paths:
+  output_dir: "./outputs"
+  input_pmid_csv: "./DATA/aqua_byproducts-5590.csv"
+
+project:
+  # null 이면 s7_report 가 자동 합성:
+  #   주제 = "<input_pmid_csv 파일명 (확장자 제거)> 의 <relevance_criterion> 관련 연구 동향"
+  #   데이터 출처 = "PubMed (<s1_meta.csv 의 year min>~<max>)"
+  주제: null
+  데이터 출처: null
+
+fetch:
+  batch_size: 200
+  # ── NCBI Entrez 인증 (선택적) ──────────────────────────
+  # 설정 시 rate limit 3/s → 10/s 로 완화됨.
+  # 보안상 config 에 키를 직접 적지 말고, 환경변수 사용 권장:
+  #   export NCBI_API_KEY=...
+  #   export NCBI_EMAIL=your@email
+  # 아래 값은 비워두면 환경변수 우선 참조.
+  ncbi_api_key: ""
+  ncbi_email: ""
+
+embed:
+  model_name: "pritamdeka/S-PubMedBert-MS-MARCO"
+  cache: true
+
+cluster:
+  min_topic_size: auto
+  umap_n_components: 2          # UMAP 투영 차원. 기본 2D. 5D 로 바꾸려면 --umap-dim 5 또는 여기 5 로.
+  seed: 42
+  reassign_outliers: false
+  sweep:
+    cutoff:
+      n_topics_min: 4
+      n_topics_max: 30
+      silhouette_min: 0.25
+      imbalance_max: 100
+      min_count_in_topics: 25
+
+label:
+  # LLM API 키는 환경변수 ANTHROPIC_API_KEY 필수 (config 에 저장 금지):
+  #   export ANTHROPIC_API_KEY=sk-ant-...
+  # anthropic SDK 가 자동 로드.
+  model: "claude-sonnet-4-20250514"
+  relevance_criterion: "생리적 기능성(physiological functionality)"
+
+timeseries:
+  # relevance_md: label-relevance step 이 자동 생성 — 외부 md 수동 작성 불필요.
+  # YAML anchor (&) 로 report 섹션에서도 재사용.
+  relevance_md: &relevance_md "./outputs/s5_label-relevance.md"
+  trend:
+    enabled: true
+    target_ranks: [1, 2, 3]
+    top_n_keywords: 7
+    p_threshold: 0.05
+    moving_avg_window: 5
+
+report:
+  intro: |
+    PubMed 수집 → SPubMedBERT 임베딩 → HDBSCAN 기반 토픽 클러스터링 →
+    LLM 라벨링·관련도 랭킹 → 연도별 추이 → HTML 리포트 자동 생성.
+    (2D UMAP + raw abstract 기반. 상세는 해당 step 로그 참고.)
+  metrics_note: |
+    cluster sweep 에서 cutoff 기준 (n_topics, silhouette, imbalance,
+    min_count, outlier) 을 통과한 후보 중 median_low 로 mts 선택.
+    지표 상세는 §3.1 참고.
+  relevance_group_note: |
+    s5 label-relevance step 이 relevance_criterion 을 기준으로 토픽을
+    자동 rank. 아래 표의 순위·근거와 색상 그룹 (상위·중위·하위) 은
+    LLM 판단 결과.
+  umap_viz:
+    seed: 42
+    cache: true
+  summary_comment: |
+    (end-to-end 검증 완료 시 기입)
+  relevance_md: *relevance_md   # timeseries.relevance_md 재참조 (YAML anchor)

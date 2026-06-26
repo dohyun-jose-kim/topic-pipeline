@@ -1,0 +1,63 @@
+# topic-pipeline config (PLAN-v2.md §4)
+# 섹션 네임스페이스. 각 step 은 자신의 섹션만 읽는다.
+
+project:
+  주제: "수산부산물(fishery by-products)의 기능성 관련 연구 동향"
+  데이터 출처: "PubMed (2000~2026)"
+
+paths:
+  input_pmid_csv: "data/pmid.csv"     # 단일 컬럼 'pmid' CSV (§15-1)
+  output_dir: "./outputs"
+  pretrained_from: ""                 # 비어있으면 새로 학습 / 경로 지정 시 첫 실행에 캐시로 복사 (§15-2)
+
+fetch:
+  ncbi_api_key: ""                    # 환경변수 NCBI_API_KEY 우선
+  batch_size: 200
+
+embed:
+  model_name: "pritamdeka/S-PubMedBert-MS-MARCO"
+  cache: true
+
+cluster:
+  min_topic_size: auto                # auto = sweep 실행 후 자동 선택 (§12) / 숫자 = 직행
+  umap_n_components: 2                # 기본 2D. 2~10 범위. 값 바뀌면 캐시 재학습 (§11)
+  seed: 42
+  reassign_outliers: false            # 기본 false. outlier(-1) 유지. true 면 reduce_outliers() 호출 (§13)
+  sweep:
+    grid: null                        # null = 앵커×{0.5,1,2} 자동 생성 (§12)
+    cutoff:
+      n_topics_min: 4                 # 토픽 수 하한
+      n_topics_max: 30                # 토픽 수 상한
+      silhouette_min: 0.25            # 클러스터 분리도
+      imbalance_max: 100              # max(topic_sizes)/min(topic_sizes), outlier(-1) 제외
+      min_count_in_topics: 25         # 가장 작은 토픽(outlier 제외)의 문서 수 하한
+      # coherence_min: 0.30           # TODO: 논문 근거 확보 후 활성화 예정
+      # outlier_max: 0.30             # TODO: 논문 근거 확보 후 활성화 예정
+
+label:
+  model: "claude-sonnet-4-20250514"
+  relevance_criterion: "생리적 기능성(physiological functionality)"
+
+timeseries:
+  summary_comment: |
+    (시계열 차트용 코멘트)
+  trend:                              # 트렌드 심화 (PLAN-v2-trend.md)
+    enabled: true
+    source: "author_keywords"
+    top_n_keywords: 7
+    target_ranks: [1, 2, 3]
+    p_threshold: 0.05
+    moving_avg_window: 5
+
+report:
+  intro: |
+    (리포트 도입문)
+  metrics_note: |
+    (지표 해석)
+  relevance_group_note: |
+    (3그룹 설명)
+  umap_viz:
+    seed: 42
+    cache: true
+  summary_comment: |
+    (최종 종합 코멘트)

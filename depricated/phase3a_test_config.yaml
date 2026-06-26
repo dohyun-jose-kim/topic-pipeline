@@ -1,0 +1,62 @@
+# Phase 3a~3d 검증용 config — v2.4 산출물을 s1/s2/s3 대체 입력으로 사용.
+# Phase 6 end-to-end 완성 후에는 삭제 / deprecated 예정.
+
+paths:
+  output_dir: "./outputs"
+  input_pmid_csv: "../01_DataFetch/data/wk3_screened.csv"
+
+fetch:
+  batch_size: 200
+
+embed:
+  model_name: "pritamdeka/S-PubMedBert-MS-MARCO"
+  cache: true
+
+cluster:
+  min_topic_size: auto
+  umap_n_components: 2          # PLAN §4 default. §7/v2.4 는 5D — KNOWN_LIMITATIONS §2
+  seed: 42
+  reassign_outliers: false      # PLAN §13 — outlier(-1) 유지
+  sweep:
+    grid: null                  # null = §12 기본 그리드 자동 생성
+    cutoff:
+      n_topics_min: 4
+      n_topics_max: 30
+      silhouette_min: 0.25
+      imbalance_max: 100
+      min_count_in_topics: 25
+
+enrich:
+  topic_model_dir: "../02_PreviousModelPath/topic_model_v2.4"
+  labeled_csv:     "../02_PreviousModelPath/topic_labeled_v2.4.csv"
+  keywords_csv:    "../01_DataFetch/data/Combine_Keywords_forTM.csv"
+
+label:
+  model: "claude-sonnet-4-20250514"
+
+timeseries:
+  labeled_csv:  "../02_PreviousModelPath/topic_labeled_v2.4.csv"
+  relevance_md: "../04_Topic_LLM-Assay/results/topic_physiological_relevance.md"
+
+project:
+  주제: "수산부산물(fishery by-products)의 기능성 관련 연구 동향"
+  데이터 출처: "PubMed (2000~2026)"
+
+report:
+  intro: |
+    본 리포트는 PubMed 의 수산부산물 기능성 관련 논문 5,590편을 BERTopic 으로
+    토픽 모델링한 결과를 종합한 Phase 3d 검증용 리포트입니다.
+  metrics_note: |
+    (Phase 5b 후 sweep 결과와 함께 확장 예정)
+  relevance_group_note: |
+    생리적 기능성(physiological functionality) 관련도 기준으로 10개 토픽을
+    직접 관련 / 간접 관련 / 낮은 관련도 3그룹으로 분류.
+  umap_viz:
+    seed: 42
+    cache: true
+  summary_comment: |
+    (end-to-end 검증 후 기입)
+  labeled_csv:    "../02_PreviousModelPath/topic_labeled_v2.4.csv"
+  embeddings_npy: "../02_PreviousModelPath/embeddings_SPubMedBert.npy"
+  relevance_md:   "../04_Topic_LLM-Assay/results/topic_physiological_relevance.md"
+  metrics_csv:    "../../week_7/wk7_Transformer/32_TopicModeling_v2-TopicNumOptim/results/v2.4/data/metrics.csv"

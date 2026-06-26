@@ -1,0 +1,38 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# ─── 가상환경 ───
+.venv/
+venv/
+env/
+.conda/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Jupyter ───
+.ipynb_checkpoints/
+
+# ─── 파이프라인 산출물 (재현 가능 → 추적 제외) ───
+outputs/
+logs/
+*.log
+
+# ─── 대용량 데이터·바이너리 (코드 중심 리포) ───
+*.npy
+*.tar.xz
+*.pptx
+*.pt
+*.bin
+*.safetensors
+
+# 예시 산출물 (v2 데모 ~104MB) — 디스크엔 보존, git 추적만 제외
+DATA/예시데이터/
