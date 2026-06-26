@@ -189,6 +189,24 @@ T4-6 md export·T4-7 serve(optional), cosmetic(s5 요약 bullet·mpl 타이틀),
 
 ---
 
+## 3.0.2 — max-effort 코드리뷰 후속 (2026-06-27, 이슈 주도 #8~#12)
+
+범용 tool 델타(`fd7fceb..HEAD`) 다각도 리뷰(10 finder→verify→sweep, 47 에이전트) 결과 수정.
+버전 `0.1.0`→**`3.0.2`** (folder/product 네이밍 정렬). 상세: `Docs/KNOWN_LIMITATIONS.md §7`.
+
+| 결함 | 이슈 | 커밋 | 내용 |
+|---|---|---|---|
+| serve `logs/` 가드레일 우회 (HIGH) | #8 | `3575dc8` | 정규화 불일치(인코딩·dot·대소문자·하위경로)·HEAD 미가드·한글 reason 크래시 → `send_head` 단일 차단점 |
+| call_local 응답 미검증 | #9 | `90887ac` | null/빈 choices → 명확한 RuntimeError |
+| _run_arxiv 재시도 부재 | #10 | `e3bbbdd` | 지수 backoff 재시도(repo 패턴) |
+| 연도 없는 코퍼스 크래시 | #11 | `02a34b4` | `load_labeled_with_year` 통합 + 안내 에러(s6/s7 중복 통합) |
+| relevance Topic 미검증 (백로그) | #12 | `fc91a0e`(문서) | provider=local/claude invariant#3 드리프트 위험 — 후속 |
+
+> pytest **92 passed** (스크래치 venv, 순수함수/헬퍼/기본경로 + serve 라이브소켓 6벡터). 기본 config 동작 byte-identical 유지.
+> **여전히 실 env 검증 필요**: torch/bertopic+데이터+API키로 전체 파이프라인 회귀 + provider=local/claude live.
+
+---
+
 ## 주의사항
 
 - **원본 파일 수정 금지**: `01~06`, `week_7/*` 는 참고만. 복사/재정리만 `90_CLI/src/` 에서.
