@@ -145,14 +145,18 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M4** T3-5 | `64f1c51` | feat: s4 MeSH/Author-KW graceful optional (비-PubMed KeyError 방지) |
 | 2026-06-26 | **M4** T3-6 | `3ddf795` | feat: s5 프롬프트 도메인 템플릿화(리터럴 제거); rule#2 보존(invariant#3) |
 
-> 검증: 스크래치 venv(경량 deps)에서 **pytest 41 passed**. M4 전 항목 순수 함수 단위 검증
-> (ingest 디스패치/CSV/embed·stop_words/도메인 헬퍼/메타 graceful/프롬프트 리터럴·rule#2 가드).
-> **byte-identical 회귀(기본 config 전체 실행) + LLM 라벨 변화는 사용자 실제 env 에서 확인 필요.**
-> 기반(M1~M3)·**M4(범용 corpus) 완료** — T3-1~6 ✅.
+| 2026-06-26 | **M5** T3-7a | `2861e58` | feat: colors split_ranks/load_taxonomy 프리미티브 (기본 3그룹 보존) |
+| 2026-06-26 | **M5** T3-7b | `ae56dcd` | refactor: 중복 _build_color_map → colors.build_color_map(taxonomy) 통합 |
+| 2026-06-26 | **M5** T3-7c-1 | `6d66632` | refactor: s7 legend·§6 재색상화 taxonomy 일반화 |
+| 2026-06-26 | **M5** T3-7c-2 | `cf02435` | refactor: s7 "3그룹" 타이틀 → 그룹 수(n_groups) 기반 |
 
-**다음**: M5 (결과 표현 + taxonomy) — T3-7 N그룹 relevance taxonomy(기본 3그룹 동일), T4-1 plotly 번들 1회,
-T4-2 render_page 경유, T4-3 섹션 config화, T4-4 s5_topic_order.json(md 재파싱), T4-5 s7_results.json,
-T4-6 md export, T4-7 stdlib serve. 이후 M6(품질, 출력 변경·마지막).
+> 검증: 스크래치 venv(경량 deps)에서 **pytest 50 passed**. M4·M5(T3-7) 순수 함수/legend 단위 검증.
+> **byte-identical 회귀(기본 config 전체) + LLM 라벨 변화는 사용자 실제 env 필요.**
+> 기반(M1~M3)·M4(범용 corpus) 완료. **M5 진행 중** — T3-7(taxonomy) ✅, 다음 T4(리포트 렌더).
+
+**다음**: M5 잔여 — T4-2 render_page 경유 → T4-1 plotly 번들 1회(head) → T4-3 섹션 config화 →
+T4-4 s5_topic_order.json(md 재파싱) → T4-5 s7_results.json → T4-6 md export → T4-7 stdlib serve.
+(cosmetic 잔여: s5 요약 bullet taxonomy화, matplotlib L254 타이틀.) 이후 M6(품질).
 
 ---
 
