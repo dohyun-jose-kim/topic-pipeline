@@ -141,7 +141,7 @@ topic-pipeline --project-theme "운동생리 연구" --project-source "PubMed 20
 - `fetch` — `source`(pubmed 기본/csv), `columns`(csv 매핑), batch_size, NCBI 슬롯(env 우선)
 - `embed` — `model_name`(SentenceTransformer), `stop_words`(english 기본/null/리스트)
 - `cluster` — `min_topic_size`(auto/숫자), `umap_n_components`(기본 2), `seed_topic_list`(guided), `sweep.tie_break`(median_low/target) + `target_n_topics` + cutoff
-- `label` — LLM 모델, `relevance_criterion`, `domain`(프롬프트 도메인; null→criterion), `relevance_taxonomy`(N그룹; 기본 3그룹)
+- `label` — `provider`(`claude` 기본 | `keywords` 무키·오프라인 | `local` OpenAI호환) + `base_url`(local), 모델, `relevance_criterion`, `domain`, `relevance_taxonomy`(N그룹; 기본 3그룹)
 - `timeseries.trend` — top_n_keywords, target_ranks, p_threshold, 이동평균
 - `report` — intro / metrics_note / relevance_group_note / summary_comment / `aux_visualizations`
 

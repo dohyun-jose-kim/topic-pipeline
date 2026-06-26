@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..shared.llm import call_claude
+from ..shared.llm import generate
 from ..shared.relevance import parse_relevance_table
 
 
@@ -28,13 +28,18 @@ def run(cfg: dict) -> None:
     labels_path = output_dir / "s5_labels.csv"
     out_path = output_dir / "s5_label-relevance.md"
 
-    model = cfg["label"]["model"]
+    model = (cfg.get("label") or {}).get("model", "")
     criterion = cfg["label"]["relevance_criterion"]
+    provider = (cfg.get("label") or {}).get("provider", "claude")
 
     labels_df = pd.read_csv(labels_path)
     print(f"[Data] {len(labels_df)} topics 로드 ({labels_path})")
 
-    rank_md = _rank_by_relevance(labels_df, criterion, model)
+    if provider == "keywords":
+        print("[s5] provider=keywords — 문서수 내림차순 랭킹 (LLM 없음)")
+        rank_md = _keyword_rank_md(labels_df, criterion)
+    else:
+        rank_md = _rank_by_relevance(labels_df, criterion, cfg)
     out_path.write_text(rank_md + "\n", encoding="utf-8")
     print(f"저장 → {out_path}")
     _write_topic_order_json(out_path, output_dir, criterion, model)
@@ -90,11 +95,33 @@ def _build_rank_prompt(labels_df: pd.DataFrame, criterion: str) -> str:
 """
 
 
-def _rank_by_relevance(labels_df: pd.DataFrame, criterion: str, model: str) -> str:
+def _rank_by_relevance(labels_df: pd.DataFrame, criterion: str, cfg: dict) -> str:
     prompt = _build_rank_prompt(labels_df, criterion)
     print(f"[LLM] relevance rank 호출 (criterion: {criterion})")
-    text = call_claude(prompt, model)
-    return text.strip()
+    return generate(prompt, cfg).strip()
+
+
+def _keyword_rank_md(labels_df: pd.DataFrame, criterion: str) -> str:
+    """LLM 없이 문서수 내림차순으로 랭킹 md 생성 (provider=keywords).
+
+    Topic 컬럼은 정수만(invariant#3) — parse_relevance_order/table 와 동일 포맷 유지.
+    """
+    df = labels_df.sort_values("doc_count", ascending=False).reset_index(drop=True)
+    lines = [
+        f"# 토픽별 {criterion} 관련도 (키워드 기반)",
+        "",
+        "LLM 없이 문서수 내림차순으로 정렬했습니다 (provider=keywords).",
+        "",
+        "## 관련도 순위",
+        "",
+        "| 순위 | Topic | Label | 문서수 | 관련 근거 |",
+        "|---:|:---:|---|---:|---|",
+    ]
+    for i, r in df.iterrows():
+        lines.append(
+            f"| {i + 1} | {int(r['topic'])} | {r.get('label_kr', '')} | {int(r['doc_count'])} | 문서수 순 |"
+        )
+    return "\n".join(lines)
 
 
 def _write_topic_order_json(md_path: Path, output_dir: Path, criterion: str, model: str) -> None:
