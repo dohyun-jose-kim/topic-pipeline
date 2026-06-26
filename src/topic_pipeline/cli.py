@@ -29,6 +29,31 @@ STEP_MODULES: dict[str, str | None] = {
     "report": "topic_pipeline.steps.s7_report",          # Phase 3d
 }
 
+# step 별 선행 산출물(output_dir 내) — 사전 검증용 (T2-8). fetch 는 input CSV 를 별도 확인.
+STEP_REQUIRES: dict[str, list[str]] = {
+    "fetch": [],
+    "embed": ["s1_meta.csv"],
+    "cluster": ["s2_embeddings.npy", "s2_meta_for_embed.csv"],
+    "enrich": ["s3_selected_model.txt", "s3_labels.csv", "s2_meta_for_embed.csv"],
+    "label": ["s4_keywords_comparison.csv"],
+    "label-relevance": ["s5_labels.csv"],
+    "timeseries": ["s5_labels.csv", "s5_label-relevance.md", "s2_meta_for_embed.csv", "s3_labels.csv"],
+    "report": ["s2_embeddings.npy", "s5_labels.csv", "s5_label-relevance.md",
+               "s2_meta_for_embed.csv", "s3_labels.csv", "s4_keywords_comparison.csv"],
+}
+
+# step 별 주요 산출물 — "같은 run 의 앞 step 이 생성" 판정용.
+STEP_PRODUCES: dict[str, list[str]] = {
+    "fetch": ["s1_meta.csv"],
+    "embed": ["s2_embeddings.npy", "s2_meta_for_embed.csv"],
+    "cluster": ["s3_labels.csv", "s3_selected_model.txt", "s3_metrics.csv"],
+    "enrich": ["s4_keywords_comparison.csv"],
+    "label": ["s5_labels.csv"],
+    "label-relevance": ["s5_label-relevance.md"],
+    "timeseries": ["s6_topics_over_time.csv"],
+    "report": ["s7_report.html"],
+}
+
 
 _DEFAULT_CONFIG_NAME = "default_config.yaml"
 
@@ -84,6 +109,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-id", metavar="NAME",
         help="[paths.run_id] 산출물을 output_dir/<NAME>/ 로 격리\n"
              "(default: 없음 → output_dir 직접; 'auto'=타임스탬프 run_YYYYmmdd_HHMMSS)",
+    )
+    parser.add_argument(
+        "--list-steps", action="store_true",
+        help="step 목록 + 모듈 + 필요/생성 산출물 출력 후 종료",
+    )
+    parser.add_argument(
+        "--from", dest="from_step", choices=STEPS, metavar="STEP",
+        help="이 step 부터 끝(또는 --to)까지 실행 (positional STEP 미지정 시)",
+    )
+    parser.add_argument(
+        "--to", dest="to_step", choices=STEPS, metavar="STEP",
+        help="처음(또는 --from)부터 이 step 까지 실행",
     )
 
     # ── domain (도메인 바꿀 때) ─────────────────────────
@@ -212,9 +249,62 @@ def _resolve_output_dir(cfg: dict) -> Path:
     return output_dir
 
 
+def _select_steps(args: argparse.Namespace) -> list[str]:
+    """positional steps > --from/--to 범위 > 전체."""
+    if args.steps:
+        return args.steps
+    if args.from_step or args.to_step:
+        i0 = STEPS.index(args.from_step) if args.from_step else 0
+        i1 = STEPS.index(args.to_step) if args.to_step else len(STEPS) - 1
+        return STEPS[i0:i1 + 1]
+    return list(STEPS)
+
+
+def _print_steps() -> None:
+    """step 목록 + 모듈 + 필요/생성 산출물."""
+    print("topic-pipeline steps (실행 순서):")
+    for i, s in enumerate(STEPS):
+        mod = STEP_MODULES.get(s) or "(미구현)"
+        reqs = ", ".join(STEP_REQUIRES.get(s, [])) or "—"
+        prods = ", ".join(STEP_PRODUCES.get(s, [])) or "—"
+        print(f"  {i}. {s:<16} → {mod}")
+        print(f"       requires: {reqs}")
+        print(f"       produces: {prods}")
+
+
+def _validate_preconditions(
+    selected: list[str], output_dir: Path, input_pmid_csv: str | None
+) -> list[tuple[str, str, str]]:
+    """선택 step 들을 순서대로 보며, 같은 run 의 앞 step 이 만들지 않는 선행 산출물이
+    output_dir 에 없으면 (step, 누락파일, 생성step) 수집. fetch 는 input CSV 존재만 확인.
+    heavy import 전에 호출되어 mid-step FileNotFoundError 대신 up-front 에러를 낸다."""
+    producer_of = {f: s for s, files in STEP_PRODUCES.items() for f in files}
+    produced: set[str] = set()
+    missing: list[tuple[str, str, str]] = []
+    for step in selected:
+        for req in STEP_REQUIRES.get(step, []):
+            if req in produced:
+                continue
+            if not (output_dir / req).exists():
+                missing.append((step, req, producer_of.get(req, "?")))
+        produced |= set(STEP_PRODUCES.get(step, []))
+    if "fetch" in selected and input_pmid_csv and not Path(input_pmid_csv).exists():
+        missing.append(("fetch", str(input_pmid_csv), "(입력 CSV)"))
+    return missing
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    selected = args.steps or STEPS
+
+    if args.list_steps:
+        _print_steps()
+        return 0
+
+    selected = _select_steps(args)
+    if not selected:
+        print("[error] 선택된 step 이 없습니다 (--from/--to 범위 확인).", file=sys.stderr)
+        return 1
+
     cfg = _apply_overrides(_load_cfg(args.config), args)
 
     output_dir = _resolve_output_dir(cfg)
@@ -224,6 +314,16 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(f"topic-pipeline start — config={args.config}")
     logger.info(f"log: {log_path}")
     logger.info(f"steps: {selected}")
+
+    missing = _validate_preconditions(
+        selected, output_dir, cfg.get("paths", {}).get("input_pmid_csv")
+    )
+    if missing:
+        logger.error("사전 조건 미충족 — 필요한 선행 산출물이 없습니다:")
+        for step, f, producer in missing:
+            logger.error(f"  [{step}] 누락: {f}  (생성 step: {producer})")
+        logger.error("선행 step 을 먼저 실행하거나 --from 으로 범위를 조정하세요.")
+        return 1
 
     total_t0 = time.time()
     for step in selected:
