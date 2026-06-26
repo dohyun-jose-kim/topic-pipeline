@@ -1,5 +1,6 @@
 # Phase 8 lock — 검증 완료된 정확한 버전.
-# pyproject.toml 은 최소 버전(>=)만 선언, 이 파일은 재현 가능한 환경 구성용.
+# pyproject.toml 은 범위(>=floor,<major)만 선언, 이 파일은 재현 가능한 환경 구성용 핀.
+# 필요 시 `pip-compile pyproject.toml` 로 재생성 가능 (pip-tools 는 선택, 빌드 의존성 아님).
 PyYAML==6.0.3
 loguru==0.7.3
 tqdm==4.67.3
