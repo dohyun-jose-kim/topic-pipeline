@@ -104,3 +104,21 @@ def test_call_local_openai_compatible():
     body = responses.calls[0].request.body
     body = body.decode() if isinstance(body, (bytes, bytearray)) else body
     assert "llama3" in body
+
+
+@responses.activate
+def test_call_local_rejects_empty_choices():
+    # 빈 choices → IndexError 를 명확한 RuntimeError 로 (raw 트레이스백/retry 밖 크래시 방지, issue #9)
+    responses.add(responses.POST, "http://localhost:11434/v1/chat/completions",
+                  json={"choices": []}, status=200)
+    with pytest.raises(RuntimeError, match="형식 예외"):
+        llm.call_local("p", "m", base_url="http://localhost:11434/v1", max_retries=1, backoff=0)
+
+
+@responses.activate
+def test_call_local_rejects_null_content():
+    # content=null → None 반환 후 caller .strip()/json.loads 크래시 대신 명확한 실패
+    responses.add(responses.POST, "http://localhost:11434/v1/chat/completions",
+                  json={"choices": [{"message": {"content": None}}]}, status=200)
+    with pytest.raises(RuntimeError, match="빈 응답"):
+        llm.call_local("p", "m", base_url="http://localhost:11434/v1", max_retries=1, backoff=0)

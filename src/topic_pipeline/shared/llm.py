@@ -90,7 +90,15 @@ def call_local(
         try:
             resp = requests.post(url, json=payload, headers=headers, timeout=300)
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            try:
+                content = data["choices"][0]["message"]["content"]
+            except (KeyError, IndexError, TypeError) as e:
+                # 형식 오류는 일시적이지 않으므로 재시도 없이 명확히 실패 (응답 본문은 노출 안 함)
+                raise RuntimeError(f"local LLM 응답 형식 예외 (model={model}): {type(e).__name__}") from e
+            if not content:
+                raise RuntimeError(f"local LLM 빈 응답 content (model={model})")
+            return content
         except requests.RequestException as e:
             last_exc = e
             wait = backoff * (2 ** attempt)
