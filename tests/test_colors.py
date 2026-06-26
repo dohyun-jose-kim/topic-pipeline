@@ -35,3 +35,40 @@ def test_all_groups_endpoints():
 def test_relevance_split_3group():
     assert colors.relevance_split(10) == (3, 4, 3)
     assert colors.relevance_split(0) == (0, 0, 0)
+
+
+# ── split_ranks / load_taxonomy (T3-7a) ──
+
+def test_split_ranks_sum_and_len():
+    for n, k in [(10, 2), (10, 3), (10, 4), (12, 3), (7, 2)]:
+        r = colors.split_ranks(n, k)
+        assert len(r) == k
+        assert sum(r) == n
+        assert all(c >= 1 for c in r)
+
+
+def test_split_ranks_weights():
+    r = colors.split_ranks(10, 2, [0.7, 0.3])
+    assert sum(r) == 10
+    assert r[0] > r[1]
+
+
+def test_split_ranks_empty():
+    assert colors.split_ranks(0, 3) == [0, 0, 0]
+
+
+def test_load_taxonomy_default_3group():
+    tax = colors.load_taxonomy({})
+    assert len(tax["groups"]) == 3
+    assert tax["groups"][0]["label"] == "직접 관련"
+    assert tax["outlier"]["label"] == "Outlier"
+
+
+def test_load_taxonomy_custom():
+    custom = {"label": {"relevance_taxonomy": {
+        "groups": [{"label": "high", "start": "#000000", "end": "#ffffff"}],
+    }}}
+    tax = colors.load_taxonomy(custom)
+    assert len(tax["groups"]) == 1
+    assert tax["groups"][0]["label"] == "high"
+    assert tax["outlier"]["label"] == "Outlier"  # 기본 outlier 유지
