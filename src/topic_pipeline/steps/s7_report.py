@@ -30,7 +30,12 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ..shared.colors import COLOR_GROUPS, build_color_map, get_colors, load_taxonomy, relevance_split
+from ..shared.colors import (
+    build_color_map,
+    load_taxonomy,
+    relevance_split,
+    split_ranks,
+)
 from ..shared.convention import load_labeled_convention, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.html_common import CSS
@@ -313,11 +318,13 @@ def _img_to_b64(path: Path) -> str:
         return "data:image/png;base64," + base64.b64encode(f.read()).decode()
 
 
-def _build_color_legend_html(n_topics: int) -> str:
+def _build_color_legend_html(n_topics: int, taxonomy: dict) -> str:
     spans = []
     offset = 1
-    splits = relevance_split(n_topics)
-    for group, n in zip(COLOR_GROUPS[:3], splits):
+    groups = taxonomy["groups"]
+    k = len(groups)
+    splits = list(relevance_split(n_topics)) if k == 3 else split_ranks(n_topics, k)
+    for group, n in zip(groups, splits):
         if n <= 0:
             continue
         rep = group["start"]
@@ -327,7 +334,7 @@ def _build_color_legend_html(n_topics: int) -> str:
         )
         offset += n
     # Outlier
-    out = COLOR_GROUPS[3]
+    out = taxonomy["outlier"]
     spans.append(
         f'<span style="color:{out["start"]}; font-weight:bold;">&#10005; '
         f'{out["label"]}</span>'
@@ -341,6 +348,7 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     keywords_df = data["keywords_df"]
     topic_order = data["topic_order"]
     color_map = data["color_map"]
+    taxonomy = load_taxonomy(cfg)
     name_map = data["name_map"]
     en_map = data["en_map"]
     desc_map = data["desc_map"]
@@ -358,7 +366,7 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
     report = cfg.get("report", {})
     label_cfg = cfg.get("label", {})
 
-    color_legend = _build_color_legend_html(len(topic_order))
+    color_legend = _build_color_legend_html(len(topic_order), taxonomy)
 
     # §1 summary
     summary_items = (
@@ -454,16 +462,9 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
         r"\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*(.+?)\s*\|",
         relevance_md_text,
     )
-    n_direct, n_indirect, n_low = relevance_split(len(topic_order))
-    all_colors_3g = (
-        get_colors(COLOR_GROUPS[0], n_direct)
-        + get_colors(COLOR_GROUPS[1], n_indirect)
-        + get_colors(COLOR_GROUPS[2], n_low)
-    )
     relevance_rows_html = ""
     for rank, topic, lab, doc_count, rationale in rel_rows:
-        idx = int(rank) - 1
-        rc = all_colors_3g[idx] if idx < len(all_colors_3g) else "#999"
+        rc = color_map.get(int(topic), "#999")
         relevance_rows_html += f"""
   <tr>
     <td style="text-align:center">{rank}</td>
