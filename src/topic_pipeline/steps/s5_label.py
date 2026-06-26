@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..shared.llm import call_claude
+
 
 def run(cfg: dict) -> None:
     output_dir = Path(cfg["paths"]["output_dir"])
@@ -30,7 +32,7 @@ def run(cfg: dict) -> None:
     print(f"[Data] {len(df)} topics 로드 ({in_path})")
 
     prompt = _build_prompt(df)
-    result_text = _call_claude(prompt, model)
+    result_text = call_claude(prompt, model)
     labels = _parse_json_labels(result_text)
 
     labels_df = pd.DataFrame(labels)
@@ -80,21 +82,6 @@ def _build_prompt(df: pd.DataFrame) -> str:
 ]
 
 JSON만 출력하세요. 다른 텍스트 없이."""
-
-
-def _call_claude(prompt: str, model: str) -> str:
-    import anthropic
-
-    client = anthropic.Anthropic()
-    print(f"[LLM] 모델: {model}")
-    print("[LLM] 요청 중...")
-
-    response = client.messages.create(
-        model=model,
-        max_tokens=8192,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.content[0].text
 
 
 def _parse_json_labels(text: str) -> list[dict]:

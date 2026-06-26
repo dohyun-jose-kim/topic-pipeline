@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..shared.llm import call_claude
+
 
 def run(cfg: dict) -> None:
     output_dir = Path(cfg["paths"]["output_dir"])
@@ -88,20 +90,5 @@ def _build_rank_prompt(labels_df: pd.DataFrame, criterion: str) -> str:
 def _rank_by_relevance(labels_df: pd.DataFrame, criterion: str, model: str) -> str:
     prompt = _build_rank_prompt(labels_df, criterion)
     print(f"[LLM] relevance rank 호출 (criterion: {criterion})")
-    text = _call_claude(prompt, model)
+    text = call_claude(prompt, model)
     return text.strip()
-
-
-def _call_claude(prompt: str, model: str) -> str:
-    import anthropic
-
-    client = anthropic.Anthropic()
-    print(f"[LLM] 모델: {model}")
-    print("[LLM] 요청 중...")
-
-    response = client.messages.create(
-        model=model,
-        max_tokens=8192,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.content[0].text
