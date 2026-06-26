@@ -182,6 +182,8 @@ def _parse_arxiv_atom(xml_text: str) -> list[dict]:
 
 def _run_arxiv(cfg: dict, output_dir: Path) -> None:
     """arXiv API 어댑터 — fetch.arxiv_query 검색 → Atom 파싱 → s1_meta.csv."""
+    import time
+
     import requests
 
     fetch_cfg = cfg.get("fetch", {}) or {}
@@ -189,13 +191,30 @@ def _run_arxiv(cfg: dict, output_dir: Path) -> None:
     if not query:
         raise ValueError("fetch.arxiv_query 필요 (arXiv 검색식, 예: 'cat:cs.CL AND ti:topic')")
     max_results = int(fetch_cfg.get("max_results", 200))
+    max_retries = int(fetch_cfg.get("max_retries", 3))
+    backoff = float(fetch_cfg.get("backoff", 2.0))
     print(f"[s1] arXiv 검색: {query!r} (max {max_results})")
-    resp = requests.get(
-        "http://export.arxiv.org/api/query",
-        params={"search_query": query, "start": 0, "max_results": max_results},
-        timeout=60,
-    )
-    resp.raise_for_status()
+
+    # export.arxiv.org 는 부하 시 503/rate-limit 으로 back-off 요구 → 다른 네트워크 호출
+    # (pubmed/call_claude/call_local)과 동일하게 일시적 오류를 지수 backoff 로 재시도.
+    last_exc: Exception | None = None
+    for attempt in range(max_retries):
+        try:
+            resp = requests.get(
+                "http://export.arxiv.org/api/query",
+                params={"search_query": query, "start": 0, "max_results": max_results},
+                timeout=60,
+            )
+            resp.raise_for_status()
+            break
+        except requests.RequestException as e:
+            last_exc = e
+            wait = backoff * (2 ** attempt)
+            print(f"  [s1 arXiv retry {attempt + 1}/{max_retries}] {e} — {wait}s 대기")
+            time.sleep(wait)
+    else:
+        raise RuntimeError(f"arXiv 요청 {max_retries}회 재시도 소진: {last_exc}")
+
     rows = _parse_arxiv_atom(resp.text)
     print(f"[s1] arXiv: {len(rows)} 건 파싱")
     _emit_s1_from_df(

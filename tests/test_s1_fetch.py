@@ -177,3 +177,19 @@ def test_arxiv_adapter(tmp_path):
     assert len(out) == 2
     assert out["pmid"].tolist() == [1, 2]
     assert out["abstract"].tolist() == ["Abstract one.", "Abstract two."]
+
+
+@responses.activate
+def test_arxiv_adapter_retries_transient(tmp_path):
+    # 일시적 503 후 200 → 재시도로 복구 (issue #10). backoff=0 으로 sleep 즉시 반환.
+    url = "http://export.arxiv.org/api/query"
+    responses.add(responses.GET, url, status=503)
+    responses.add(responses.GET, url, body=ARXIV_ATOM, status=200)
+    cfg = {
+        "paths": {"output_dir": str(tmp_path), "input_pmid_csv": str(tmp_path / "x")},
+        "fetch": {"source": "arxiv", "arxiv_query": "cat:cs.CL", "backoff": 0},
+    }
+    s1_fetch.run(cfg)
+    out = pd.read_csv(tmp_path / "s1_meta.csv")
+    assert len(out) == 2                    # 복구 후 정상 파싱
+    assert len(responses.calls) == 2        # 1회 재시도
