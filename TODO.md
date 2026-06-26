@@ -128,8 +128,16 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M1** T2-1/3 | `dd5ce0a` | build: 버전 단일화 + 의존성 캡 + extras. `pip install -e . --no-deps` 로 dynamic 버전 0.1.0 검증 |
 | 2026-06-26 | **M1** T2-2 | `e5ff010` | docs: `pip install -e .` 정규화, 절대 conda 경로 제거 (역사적 설계 로그는 provenance 보존) |
 | 2026-06-26 | **M1** T2-10 | `e9a056a` | test: shared smoke → pytest 12 (invariant#3 회귀 가드 포함). pytest 12 passed |
+| 2026-06-26 | (M1 로그) | `c912f4b` | docs: TODO v3 진행 로그 |
+| 2026-06-26 | **M2** T2-4 | `0250dc2` | feat: shared/device.py resolver + compute 섹션 (기본 cpu byte-identical) |
+| 2026-06-26 | **M2** T2-5/6/7 | `3ad921a` | feat: --run-id 출력 네임스페이싱 + relevance_md null-safe(anchor 제거) + step별 cfg deepcopy. pytest 18 |
+| 2026-06-26 | (별도 요청) | `178c7bd` | docs: CLAUDE_dh_v1.md 범용 작업-방식 템플릿 (백그라운드) |
+| 2026-06-26 | **M2** T2-8 | `0dd64b2` | feat: --list-steps/--from/--to + 사전 조건 검증(fail-fast). pytest 26 |
 
-**다음**: M2 (CLI/config 골격 — T2-4 device resolver, T2-5 run-id 네임스페이싱, T2-6/7/8).
+> 검증: 스크래치 venv(경량 deps)에서 pytest 26 passed + `--list-steps`/`--help`/fail-fast 기능 확인.
+> **byte-identical 회귀(기본 config 전체 실행)는 사용자 실제 env(torch/bertopic+데이터+API키) 필요** — 미수행.
+
+**다음**: M3 (공유 리팩터 1회 — LLM-1: 중복 `_call_claude`(s5_label==s5_label_relevance) → `shared/llm.py` 추출 +retry; T2-9: `shared/device.setup_torch` 를 s2/s3/s4/s7 에 배선, batch_size config화).
 
 ---
 
