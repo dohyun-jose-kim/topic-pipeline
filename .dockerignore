@@ -1,0 +1,12 @@
+.git
+outputs/
+**/__pycache__/
+*.egg-info/
+.venv/
+venv/
+**/.DS_Store
+DATA/예시데이터/
+*.npy
+*.tar.xz
+*.pptx
+.pytest_cache/

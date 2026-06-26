@@ -21,6 +21,14 @@ topic-pipeline --help                     # 동작 확인
 
 신규 환경 (다른 머신·CI·배포) 세팅: [`Docs/NEW_ENV_SETUP.md`](./Docs/NEW_ENV_SETUP.md) 참고.
 
+### 배포 (pipx / Docker / build)
+```bash
+pipx install .                      # 격리 설치 (전역 topic-pipeline 명령)
+python -m build                     # sdist/wheel 생성 (dist/) — PyPI 배포용
+docker build -t topic-pipeline .    # CPU 이미지 (torch 포함, 5~15분)
+docker run --rm -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" -v "$PWD:/work" -w /work topic-pipeline --help
+```
+
 ### 환경변수
 ```bash
 export NCBI_API_KEY="..."        # s1 fetch 속도 (10 req/s; 없으면 3 req/s)
@@ -116,7 +124,7 @@ topic-pipeline --project-theme "운동생리 연구" --project-source "PubMed 20
 
 | step | 입력 | 출력 | 설명 |
 |---|---|---|---|
-| `fetch` | `paths.input_pmid_csv` *(또는 `fetch.source: csv`)* | `s1_meta.csv` | PMID efetch **또는 CSV 어댑터** → pmid/title/abstract/year/author_kw/mesh |
+| `fetch` | `paths.input_pmid_csv` *(또는 `fetch.source`)* | `s1_meta.csv` | PMID efetch / **CSV·JSONL·dir·arXiv** 어댑터 → pmid/title/abstract/year/author_kw/mesh |
 | `preprocess` | `s1_meta.csv` | `s0_meta_clean.csv` | **opt-in** (`preprocess.enabled`): abstract → abstract_clean 정제 (기본 off=skip) |
 | `embed` | `s1_meta.csv` *(있으면 `s0_meta_clean.csv`)* | `s2_embeddings.npy` + `s2_meta_for_embed.csv` | SentenceTransformer 인코딩 (빈 텍스트 drop; device/batch config) |
 | `cluster` | `s2_embeddings.npy` | `s3_model_*/` + `s3_labels.csv` + `s3_metrics.csv` + `sweep/` | BERTopic + mts sweep + cutoff + **tie-break(median_low 기본 \| target-n)** + (opt) guided |
