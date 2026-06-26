@@ -21,6 +21,24 @@ def load_labeled_convention(output_dir: Path) -> pd.DataFrame:
     return s2_meta.merge(s3_labels, on="pmid", how="inner")
 
 
+def load_labeled_with_year(output_dir: Path) -> pd.DataFrame:
+    """load_labeled_convention + year 정수화 + year>0 필터. s6/s7 공용(중복 통합).
+
+    유효 연도(>0) 문서가 0건이면 — 연도 없는 코퍼스(dir / year 미매핑 csv·jsonl) —
+    timeseries/report 는 연도 축이 없어 빈 프레임으로 침묵 붕괴하므로, 명확한 에러로 안내한다.
+    """
+    df = load_labeled_convention(output_dir)
+    df["year"] = pd.to_numeric(df["year"], errors="coerce").fillna(0).astype(int)
+    df = df[df["year"] > 0].reset_index(drop=True)
+    if df.empty:
+        raise ValueError(
+            "유효한 year(>0) 문서가 0건 — timeseries/report 는 연도 정보가 필요합니다. "
+            "연도 컬럼을 fetch.columns.year 로 매핑하거나(csv/jsonl/arxiv), "
+            "연도 없는 코퍼스(dir 등)는 '--to label' 까지만 실행하세요."
+        )
+    return df
+
+
 def read_selected_model_dir(output_dir: Path) -> Path:
     """s3_selected_model.txt 에 기록된 캐시 디렉토리 반환."""
     txt = (output_dir / "s3_selected_model.txt").read_text(encoding="utf-8").strip()

@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from ..shared.colors import COLOR_GROUPS, build_color_map, load_taxonomy
-from ..shared.convention import load_labeled_convention, relevance_md_path
+from ..shared.convention import load_labeled_with_year, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.relevance import parse_relevance_order
 
@@ -43,9 +43,7 @@ def run(cfg: dict) -> None:
     if ts_cfg.get("labeled_csv"):
         df = pd.read_csv(ts_cfg["labeled_csv"])
     else:
-        df = load_labeled_convention(output_dir)
-        df["year"] = pd.to_numeric(df["year"], errors="coerce").fillna(0).astype(int)
-        df = df[df["year"] > 0].reset_index(drop=True)
+        df = load_labeled_with_year(output_dir)
 
     labels = pd.read_csv(labels_csv)
     topic_order = parse_relevance_order(relevance_md)

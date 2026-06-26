@@ -37,7 +37,7 @@ from ..shared.colors import (
     relevance_split,
     split_ranks,
 )
-from ..shared.convention import load_labeled_convention, relevance_md_path
+from ..shared.convention import load_labeled_with_year, relevance_md_path
 from ..shared.fonts import setup_mpl
 from ..shared.html_common import render_page
 from ..shared.relevance import parse_relevance_order, parse_relevance_table_text
@@ -122,9 +122,7 @@ def _load_data(cfg: dict, output_dir: Path) -> dict:
     if r.get("labeled_csv"):
         df = pd.read_csv(r["labeled_csv"])
     else:
-        df = load_labeled_convention(output_dir)
-        df["year"] = pd.to_numeric(df["year"], errors="coerce").fillna(0).astype(int)
-        df = df[df["year"] > 0].reset_index(drop=True)
+        df = load_labeled_with_year(output_dir)
 
     labels_df = pd.read_csv(labels_csv)
     keywords_df = pd.read_csv(keywords_csv)
