@@ -50,7 +50,7 @@ def _build_rank_prompt(labels_df: pd.DataFrame, criterion: str) -> str:
     topics_text = "\n\n".join(topic_blocks)
     n = len(labels_df)
 
-    return f"""아래는 PubMed 논문을 BERTopic 클러스터링한 결과의 {n}개 토픽 라벨입니다.
+    return f"""아래는 문서를 BERTopic 클러스터링한 결과의 {n}개 토픽 라벨입니다.
 
 {topics_text}
 

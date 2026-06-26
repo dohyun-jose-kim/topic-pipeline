@@ -50,3 +50,10 @@ def resolve_stop_words(cfg):
     CountVectorizer 가 셋 다 그대로 받는다. s3/s4 의 하드코딩 'english' 통합.
     """
     return (cfg.get("embed") or {}).get("stop_words", "english")
+
+
+def resolve_domain(cfg) -> str:
+    """LLM 프롬프트용 도메인 서술어: label.domain → label.relevance_criterion → project.주제 → '문서'."""
+    label = cfg.get("label") or {}
+    project = cfg.get("project") or {}
+    return label.get("domain") or label.get("relevance_criterion") or project.get("주제") or "문서"

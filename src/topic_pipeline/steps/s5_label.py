@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..shared.convention import resolve_domain
 from ..shared.llm import call_claude
 
 
@@ -31,7 +32,7 @@ def run(cfg: dict) -> None:
     df = pd.read_csv(in_path)
     print(f"[Data] {len(df)} topics 로드 ({in_path})")
 
-    prompt = _build_prompt(df)
+    prompt = _build_prompt(df, resolve_domain(cfg))
     result_text = call_claude(prompt, model)
     labels = _parse_json_labels(result_text)
 
@@ -47,7 +48,7 @@ def run(cfg: dict) -> None:
         print(f"  설명: {r.get('description', '')}")
 
 
-def _build_prompt(df: pd.DataFrame) -> str:
+def _build_prompt(df: pd.DataFrame, domain: str) -> str:
     topic_blocks = []
     for _, r in df.iterrows():
         block = (
@@ -60,8 +61,10 @@ def _build_prompt(df: pd.DataFrame) -> str:
         topic_blocks.append(block)
 
     topics_text = "\n\n".join(topic_blocks)
+    total = int(df["doc_count"].sum())
+    n = len(df)
 
-    return f"""아래는 수산부산물 기능성 관련 PubMed 논문 5,590편을 BERTopic으로 클러스터링한 결과입니다.
+    return f"""아래는 {domain} 관련 문서 {total:,}편을 BERTopic으로 클러스터링한 {n}개 토픽입니다.
 각 토픽에 대해 4가지 관점의 키워드가 주어집니다:
 - c-TF-IDF: 토픽 내 빈도 기반 핵심어
 - KeyBERT: 임베딩 유사도 기반 핵심어

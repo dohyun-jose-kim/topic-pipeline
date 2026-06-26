@@ -63,6 +63,7 @@ label:
   # anthropic SDK 가 자동 로드.
   model: "claude-sonnet-4-20250514"
   relevance_criterion: "생리적 기능성(physiological functionality)"
+  # domain: null           # s5 프롬프트 도메인 서술어. null → relevance_criterion → project.주제 → '문서'
 
 timeseries:
   # null → {output_dir}/s5_label-relevance.md 자동 사용 (convention.relevance_md_path).
