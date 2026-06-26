@@ -141,13 +141,18 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M4** T3-2 | `a7a38b8` | feat: CSV-of-text ingest 어댑터 (합성 정수 pmid, mesh 비움). 순수 pandas 완전 검증 |
 | 2026-06-26 | **M4** T3-3 | `35d3337` | refactor: embed 모델 resolve_embed_model 통합 + stale-cache 경고 |
 | 2026-06-26 | **M4** T3-4 | `3c95892` | refactor: stop_words resolve_stop_words config화 (english/null/list) |
+| 2026-06-26 | (M4 로그) | `94b1096` | docs: TODO v3 진행 로그 (T3-1~4 동기화) |
+| 2026-06-26 | **M4** T3-5 | `64f1c51` | feat: s4 MeSH/Author-KW graceful optional (비-PubMed KeyError 방지) |
+| 2026-06-26 | **M4** T3-6 | `3ddf795` | feat: s5 프롬프트 도메인 템플릿화(리터럴 제거); rule#2 보존(invariant#3) |
 
-> 검증: 스크래치 venv(경량 deps)에서 **pytest 37 passed**. M4 ingest/CSV·config 헬퍼는 순수 함수라
-> 네트워크 없이 단위 검증됨. **byte-identical 회귀(기본 config 전체 실행)는 사용자 실제 env 필요** — 미수행.
-> 기반(M1~M3) 완료. M4 진행 중 (baby step: T3-1~4 ✅).
+> 검증: 스크래치 venv(경량 deps)에서 **pytest 41 passed**. M4 전 항목 순수 함수 단위 검증
+> (ingest 디스패치/CSV/embed·stop_words/도메인 헬퍼/메타 graceful/프롬프트 리터럴·rule#2 가드).
+> **byte-identical 회귀(기본 config 전체 실행) + LLM 라벨 변화는 사용자 실제 env 에서 확인 필요.**
+> 기반(M1~M3)·**M4(범용 corpus) 완료** — T3-1~6 ✅.
 
-**다음**: M4 잔여 — **T3-5** (s4 MeSH/Author-KW optional, graceful empty) → **T3-6** (s5 LLM 프롬프트
-도메인 템플릿화: `수산부산물 5,590편` 리터럴 제거·df 카운트 사용; **rule#2 정수 Topic regex 불가침**). 이후 M5/M6.
+**다음**: M5 (결과 표현 + taxonomy) — T3-7 N그룹 relevance taxonomy(기본 3그룹 동일), T4-1 plotly 번들 1회,
+T4-2 render_page 경유, T4-3 섹션 config화, T4-4 s5_topic_order.json(md 재파싱), T4-5 s7_results.json,
+T4-6 md export, T4-7 stdlib serve. 이후 M6(품질, 출력 변경·마지막).
 
 ---
 
