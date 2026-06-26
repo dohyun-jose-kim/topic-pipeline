@@ -150,13 +150,16 @@ ver3.0.1 = v2 정제 복사 베이스라인. 전체 설계: [`Docs/v3_improvemen
 | 2026-06-26 | **M5** T3-7c-1 | `6d66632` | refactor: s7 legend·§6 재색상화 taxonomy 일반화 |
 | 2026-06-26 | **M5** T3-7c-2 | `cf02435` | refactor: s7 "3그룹" 타이틀 → 그룹 수(n_groups) 기반 |
 
-> 검증: 스크래치 venv(경량 deps)에서 **pytest 50 passed**. M4·M5(T3-7) 순수 함수/legend 단위 검증.
-> **byte-identical 회귀(기본 config 전체) + LLM 라벨 변화는 사용자 실제 env 필요.**
-> 기반(M1~M3)·M4(범용 corpus) 완료. **M5 진행 중** — T3-7(taxonomy) ✅, 다음 T4(리포트 렌더).
+| 2026-06-26 | **M5** T4-2 | `0020949` | refactor: s7 HTML skeleton → render_page 통합 (head_extra 슬롯 확보) |
+| 2026-06-26 | **M5** T4-1 | `2e093b2` | fix: plotly 번들 head 1회 주입 (include_plotlyjs 순서결합 버그) |
+| 2026-06-26 | **M5** T4-4 | `8a0d677` | feat: s5_topic_order.json (md 재파싱→invariant#3 유지) + parse_relevance_table |
 
-**다음**: M5 잔여 — T4-2 render_page 경유 → T4-1 plotly 번들 1회(head) → T4-3 섹션 config화 →
-T4-4 s5_topic_order.json(md 재파싱) → T4-5 s7_results.json → T4-6 md export → T4-7 stdlib serve.
-(cosmetic 잔여: s5 요약 bullet taxonomy화, matplotlib L254 타이틀.) 이후 M6(품질).
+> 검증: 스크래치 venv(경량 deps)에서 **pytest 52 passed**. M5 색상/legend/parse_relevance_table 단위 검증.
+> **byte-identical 회귀(기본 config 전체) + LLM 라벨 변화는 사용자 실제 env 필요.**
+> 기반(M1~M3)·M4 완료. **M5 진행 중** — T3-7·T4-1·T4-2·T4-4 ✅.
+
+**다음**: M5 잔여 — **T4-3** 섹션 config화(report.sections, 죽은 BERTopic 링크 제거; _build_html 대형 리팩터) →
+**T4-5** s7_results.json → **T4-6** md export → **T4-7** stdlib serve. (cosmetic: s5 요약 bullet taxonomy화, mpl L254 타이틀.) 이후 **M6**(품질, 출력 변경·마지막).
 
 ---
 
