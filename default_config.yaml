@@ -53,6 +53,8 @@ cluster:
   seed: 42
   reassign_outliers: false
   sweep:
+    tie_break: median_low   # 'median_low'(기본, 현행) | 'target'(target_n_topics 에 가장 가까운 토픽수)
+    target_n_topics: 10     # tie_break='target' 일 때 목표 토픽 수 (KNOWN_LIMITATION #4)
     cutoff:
       n_topics_min: 4
       n_topics_max: 30

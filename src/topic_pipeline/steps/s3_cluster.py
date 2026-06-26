@@ -132,7 +132,7 @@ def run(cfg: dict) -> None:
         table = _build_diagnostic_table(sweep_results)
         raise SweepFailedError(f"생존자 0명. sweep_report.md 참고.\n\n{table}")
 
-    selected_mts = grid[0] if skip_sweep else median_low(survivors)
+    selected_mts = grid[0] if skip_sweep else _select_mts(sweep_results, cluster_cfg)
     print(f"\n[s3] 선택: min_topic_size={selected_mts} "
           f"({'직행' if skip_sweep else f'생존자 {len(survivors)}개 중 median_low'})")
 
@@ -202,6 +202,26 @@ def _default_grid(N: int) -> list[int]:
         return [10]
     r = (C / 10) ** (1 / 4)
     return [round(10 * r**i) for i in range(5)] + [round(C * r**i) for i in range(1, 4)]
+
+
+def _select_mts(sweep_results: list[dict], cluster_cfg: dict) -> int:
+    """생존자 중 min_topic_size 선택.
+
+    tie_break='median_low'(기본·현행): 생존 mts 의 median_low.
+    tie_break='target': metrics.n_topics 가 target_n_topics 에 가장 가까운 후보
+    (동률이면 더 큰 n_topics = 더 세분화 선호). KNOWN_LIMITATION #4 대응.
+    """
+    survivors = [r for r in sweep_results if r["passed"]]
+    sweep_cfg = cluster_cfg.get("sweep") or {}
+    tie = sweep_cfg.get("tie_break", "median_low")
+    if tie == "target":
+        target = sweep_cfg.get("target_n_topics", 10)
+        best = min(
+            survivors,
+            key=lambda r: (abs(r["metrics"]["n_topics"] - target), -r["metrics"]["n_topics"]),
+        )
+        return best["mts"]
+    return median_low([r["mts"] for r in survivors])
 
 
 # ── 단일 학습 ──────────────────────────────────────────────────
