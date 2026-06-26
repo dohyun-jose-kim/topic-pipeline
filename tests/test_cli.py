@@ -88,6 +88,19 @@ def test_serve_blocked_logs():
     assert not cli._serve_blocked("/s7_results.json")
 
 
+def test_serve_blocked_bypass_vectors():
+    # translate_path 가 unquote+normpath 한 뒤 logs/ 에 도달하는 우회 경로들도 차단 (issue #8)
+    assert cli._serve_blocked("/%6Cogs/run.log")        # 퍼센트 인코딩 ('l')
+    assert cli._serve_blocked("/logs%2frun.log")        # %2f → '/'
+    assert cli._serve_blocked("/./logs/run.log")        # dot-segment
+    assert cli._serve_blocked("/foo/../logs/run.log")   # 상위 참조 정규화
+    assert cli._serve_blocked("/Logs/run.log")          # case-insensitive FS
+    assert cli._serve_blocked("/exp1/logs/run.log")     # run-id 하위 디렉터리
+    # 정상 산출물은 통과
+    assert not cli._serve_blocked("/exp1/s7_report.html")
+    assert not cli._serve_blocked("/s6_figures/line_absolute.png")
+
+
 def test_serve_missing_dir_returns_1(tmp_path):
     # 디렉토리 없으면 서버 기동 없이 1 반환 (블로킹 X)
     assert cli._serve(tmp_path / "nope", 8123) == 1

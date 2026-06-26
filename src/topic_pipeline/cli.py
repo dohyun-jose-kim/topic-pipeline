@@ -8,8 +8,10 @@ from __future__ import annotations
 import argparse
 import copy
 import importlib
+import posixpath
 import sys
 import time
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
@@ -303,9 +305,16 @@ def _init(name: str, preset: str | None) -> int:
 
 
 def _serve_blocked(path: str) -> bool:
-    """serve 시 차단할 경로 (logs/ — DEBUG 로그 노출 방지, 시크릿 가드레일)."""
-    p = path.split("?", 1)[0].lstrip("/")
-    return p == "logs" or p.startswith("logs/")
+    """serve 시 차단할 경로 (logs/ — DEBUG 로그 노출 방지, 시크릿 가드레일).
+
+    translate_path 와 동일하게 unquote→정규화한 뒤 'logs' 세그먼트가 경로 어디에든
+    있으면 차단한다. 가드와 파일 resolver 가 같은 문자열을 보게 하여 퍼센트 인코딩
+    (`/%6Cogs/`, `/logs%2f`)·dot-segment(`/./logs/`, `/foo/../logs/`)·하위 run-id
+    (`/exp1/logs/`)·대소문자(case-insensitive FS) 우회를 모두 막는다.
+    """
+    decoded = urllib.parse.unquote(path.split("?", 1)[0].split("#", 1)[0])
+    parts = [seg for seg in posixpath.normpath(decoded).split("/") if seg not in ("", ".", "..")]
+    return any(seg.lower() == "logs" for seg in parts)
 
 
 def _serve(output_dir: Path, port: int) -> int:
@@ -320,11 +329,13 @@ def _serve(output_dir: Path, port: int) -> int:
         return 1
 
     class _Handler(http.server.SimpleHTTPRequestHandler):
-        def do_GET(self):  # noqa: N802
+        def send_head(self):
+            # GET·HEAD 공통 진입점 → 한 곳에서 차단. 한글 메시지는 reason phrase(latin-1)가
+            # 아니라 explain 본문(UTF-8)으로 전달해 send_response_only 의 인코딩 크래시를 피한다.
             if _serve_blocked(self.path):
-                self.send_error(403, "logs 접근 차단")
-                return
-            return super().do_GET()
+                self.send_error(403, "Forbidden", "logs 디렉터리 접근 차단")
+                return None
+            return super().send_head()
 
     handler = functools.partial(_Handler, directory=directory)
     with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:
