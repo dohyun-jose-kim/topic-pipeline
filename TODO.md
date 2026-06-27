@@ -234,7 +234,9 @@ py3.11 venv + 핀 스택 실설치(torch/bertopic/umap/hdbscan/sklearn). 600편 
 | **Run B**: 결정적 산출물 byte-identical | — | — | s1_meta/s2_*/s3_selected/s6_trend baseline=HEAD; 클러스터링↓는 비결정(#15)이라 교차diff 불가 → 코드리뷰로 등가 담보 |
 | 클러스터링 run-to-run 비결정 (재현성) | #15 | 문서 | seed 고정·단일스레드에도 n_topics 변동(umap-learn 내재). KNOWN §9 |
 
-> 버전 `3.0.3`→**`3.0.4`**. pytest **110 passed** + 실 env Run A/B. C(실데이터 5590+Claude)는 사용자 키 필요.
+> 버전 `3.0.3`→**`3.0.4`**. pytest **110 passed** + 실 env Run A/B. C(실데이터 5590)는 ↓에서 로컬 LLM 으로 실행 완료, Claude 라벨 경로만 사용자 키 필요.
+
+**후속 검증 (2026-06-27, 코드 변경 없음 · scratchpad 전용):** `provider=local`(Ollama exaone3.5:32b) 라이브 + 실데이터 5590 풀런 완료. `default_config` 에서 provider 만 local 로 → PubMed 5590편 → PubMedBERT 임베딩 → 기본 8pt sweep(mts=37/**16토픽**) → exaone3.5:32b 라벨 → s7(10.8MB), **invariant#3 준수**(드리프트 0), 9:25/exit0. 이전 mock-only 였던 `provider=local`·`generate`·`call_local`(#9)·드리프트 경고(#12) 실전 통과. **provider=claude 경로만 `ANTHROPIC_API_KEY` 필요(미실행).** 상세: `Docs/KNOWN_LIMITATIONS.md §10`.
 
 ---
 
