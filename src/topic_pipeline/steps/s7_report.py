@@ -379,6 +379,21 @@ def _write_results_json(
     print(f"[results] {path}")
 
 
+def _read_trend_stats(path: Path):
+    """s6_trend_stats.csv 읽기 — 없거나 비어있으면(트렌드 미검출) None.
+
+    s6 가 유의한 추세 0건이면 컬럼 없는 빈 CSV(BOM만)를 쓰는데, 무방비 read_csv 는
+    EmptyDataError 로 죽는다. "트렌드 없음" 은 정상 상태이므로 None 으로 흡수(issue #14).
+    """
+    if not path.exists():
+        return None
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return None
+    return df if not df.empty else None
+
+
 def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, output_dir: Path) -> str:
     df = data["df"]
     labels_df = data["labels_df"]
@@ -620,8 +635,8 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
     trend_criterion = label_cfg.get("relevance_criterion", "(미설정)")
     trend_target_ranks = trend_cfg.get("target_ranks", [1, 2, 3])
     trend_top_n = trend_cfg.get("top_n_keywords", 7)
-    if trend_csv_path.exists():
-        trend_df = pd.read_csv(trend_csv_path)
+    trend_df = _read_trend_stats(trend_csv_path)
+    if trend_df is not None:
         trend_table_rows = ""
         for _, r in trend_df.iterrows():
             trend_table_rows += f"""
@@ -661,7 +676,7 @@ min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을
 {topic_imgs}
 """
     else:
-        trend_stub = '<p style="color:#888; font-style:italic;">(s6_trend_stats.csv 없음 — timeseries step 의 trend 분석 실행 필요)</p>'
+        trend_stub = '<p style="color:#888; font-style:italic;">(트렌드 표 없음 — 유의한 키워드 추세 미검출 또는 trend 분석 미실행)</p>'
 
     body = f"""
 <h1>Topic Modeling — 종합 리포트</h1>
