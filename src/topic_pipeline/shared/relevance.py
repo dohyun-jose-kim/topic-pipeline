@@ -9,11 +9,25 @@ import re
 from pathlib import Path
 
 
+_ORDER_ROW = re.compile(r"\|\s*(\d+)\s*\|\s*(\d+)\s*\|")
+
+
 def parse_relevance_order(md_path: Path) -> list[int]:
     """관련도 순위 표의 | rank | topic | 쌍을 뽑아 rank 순 topic_id 리스트로 반환."""
     text = Path(md_path).read_text(encoding="utf-8")
-    rows = re.findall(r"\|\s*(\d+)\s*\|\s*(\d+)\s*\|", text)
+    rows = _ORDER_ROW.findall(text)
     return [int(topic) for _, topic in sorted(rows, key=lambda x: int(x[0]))]
+
+
+def missing_topics_in_order(md_text: str, expected_topics) -> list[int]:
+    """parse_relevance_order 가 md 에서 복원하는 topic 집합과 기대 집합을 비교, 누락 id 반환.
+
+    LLM 이 Topic 컬럼을 비-정수('Topic 5', zero-pad 등)로 내면 그 행이 정규식에 안 잡혀
+    침묵 drop → s6/s7 정렬·색상이 깨진다(invariant#3). 그 누락을 호출부에서 경고로
+    surface 하기 위한 검출기 (parse_relevance_order 와 동일 정규식 사용).
+    """
+    found = {int(topic) for _, topic in _ORDER_ROW.findall(md_text)}
+    return sorted(t for t in {int(x) for x in expected_topics} if t not in found)
 
 
 _TABLE_ROW = re.compile(

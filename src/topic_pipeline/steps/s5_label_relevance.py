@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..shared.llm import generate
-from ..shared.relevance import parse_relevance_table
+from ..shared.relevance import missing_topics_in_order, parse_relevance_table
 
 
 def run(cfg: dict) -> None:
@@ -40,6 +40,7 @@ def run(cfg: dict) -> None:
         rank_md = _keyword_rank_md(labels_df, criterion)
     else:
         rank_md = _rank_by_relevance(labels_df, criterion, cfg)
+        _warn_on_topic_drift(rank_md, labels_df)
     out_path.write_text(rank_md + "\n", encoding="utf-8")
     print(f"저장 → {out_path}")
     _write_topic_order_json(out_path, output_dir, criterion, model)
@@ -99,6 +100,19 @@ def _rank_by_relevance(labels_df: pd.DataFrame, criterion: str, cfg: dict) -> st
     prompt = _build_rank_prompt(labels_df, criterion)
     print(f"[LLM] relevance rank 호출 (criterion: {criterion})")
     return generate(prompt, cfg).strip()
+
+
+def _warn_on_topic_drift(rank_md: str, labels_df: pd.DataFrame) -> None:
+    """LLM 출력의 Topic 컬럼이 비-정수면 parse_relevance_order 가 행을 침묵 drop →
+    s6/s7 정렬·색상 누락(invariant#3). 누락 topic 을 명시적으로 경고한다(조용한 누락 금지).
+
+    keyword 경로는 int() 포맷이라 안전 — LLM(claude/local) 경로에서만 호출.
+    """
+    missing = missing_topics_in_order(rank_md, labels_df["topic"].tolist())
+    if missing:
+        print(f"[s5] ⚠️ invariant#3 경고: relevance 표에서 topic {missing} 이(가) 파싱되지 "
+              f"않습니다 (Topic 컬럼이 정수가 아닐 가능성). s6/s7 정렬·색상이 누락될 수 있으니 "
+              f"재생성하거나 provider=keywords 사용을 권장합니다.")
 
 
 def _keyword_rank_md(labels_df: pd.DataFrame, criterion: str) -> str:

@@ -28,3 +28,20 @@ def test_run_keywords_provider_no_api(tmp_path):
 
     data = json.loads((tmp_path / "s5_topic_order.json").read_text(encoding="utf-8"))
     assert [t["topic"] for t in data["topics"]] == [1, 0]   # doc_count 40 > 10
+
+
+# ── LLM 경로 Topic 드리프트 경고 (issue #12) ──
+
+def test_warn_on_topic_drift_fires(capsys):
+    df = pd.DataFrame({"topic": [0, 4, 5], "doc_count": [3, 8, 10]})
+    drift_md = "| 1 | Topic 5 | a | 10 | r |\n| 2 | 4 | b | 8 | r |\n| 3 | 0 | c | 3 | r |"
+    s5_label_relevance._warn_on_topic_drift(drift_md, df)
+    out = capsys.readouterr().out
+    assert "invariant#3" in out and "5" in out
+
+
+def test_warn_on_topic_drift_silent_when_clean(capsys):
+    df = pd.DataFrame({"topic": [0, 4, 5], "doc_count": [3, 8, 10]})
+    clean_md = "| 1 | 5 | a | 10 | r |\n| 2 | 4 | b | 8 | r |\n| 3 | 0 | c | 3 | r |"
+    s5_label_relevance._warn_on_topic_drift(clean_md, df)
+    assert capsys.readouterr().out == ""

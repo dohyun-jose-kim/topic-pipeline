@@ -16,6 +16,18 @@ def test_parse_relevance_order_bare_integer_contract():
     assert relevance.parse_relevance_order(FIXTURE) == expected
 
 
+def test_missing_topics_in_order_clean():
+    # 정상 bare-int 표 → 누락 없음 (정상 출력엔 영향 없음)
+    md = "| 1 | 5 | a | 10 | r |\n| 2 | 4 | b | 8 | r |\n| 3 | 0 | c | 3 | r |"
+    assert relevance.missing_topics_in_order(md, [0, 4, 5]) == []
+
+
+def test_missing_topics_in_order_detects_drift():
+    # 'Topic 5' 는 정규식에 안 잡혀 침묵 drop → 누락으로 검출 (invariant#3 가드)
+    md = "| 1 | Topic 5 | a | 10 | r |\n| 2 | 4 | b | 8 | r |\n| 3 | 0 | c | 3 | r |"
+    assert relevance.missing_topics_in_order(md, [0, 4, 5]) == [5]
+
+
 def test_parse_relevance_table():
     rows = relevance.parse_relevance_table(FIXTURE)
     assert len(rows) == 10
