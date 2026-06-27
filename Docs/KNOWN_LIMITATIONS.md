@@ -205,6 +205,33 @@ ingest 어댑터, --init/--preset, --serve, Docker)을 다각도(10 finder→ver
 
 ---
 
+## 9. ver3.0.4 — 실 env 전체 파이프라인 회귀 검증 (2026-06-27)
+
+py3.11 venv + 핀 스택 실설치(torch 2.12.1·bertopic 0.16.4·sentence-transformers 2.7.0·
+umap-learn 0.5.12·hdbscan 0.8.44·sklearn 1.9.0). 600편 합성 코퍼스(6테마) + `source=csv` +
+`provider=keywords` + 경량 임베딩(all-MiniLM-L6-v2)으로 무키·무네트워크 end-to-end.
+
+**Run A (smoke) — 통과**: s1→s7 전 단계 실제 완주(s7_report.html 6.6MB). 단위테스트 110개가
+못 잡은 **실 크래시 2건 발견·수정**:
+- **✅ #13 (HIGH)** step 위치인자(`nargs='*'`+`choices`)가 빈 기본값을 거부 → `--config X`(전체
+  실행)·`--list-steps`·`--init`·`--serve` 가 모던 CPython(argparse)에서 전부 실패. choices 제거 +
+  main() 검증으로 수정.
+- **✅ #14** s6 가 트렌드 0건일 때 쓰는 빈 `s6_trend_stats.csv`(컬럼 없음)를 s7 이 무방비 read_csv →
+  EmptyDataError 로 report 크래시. `_read_trend_stats` 가드로 수정.
+
+**Run B (byte-identical) — 부분 검증 + 재현성 발견**: baseline(`5f8cd09`, 3.0.2 이전) vs HEAD 를
+같은 env·config 로 비교.
+- **결정적 산출물 byte-IDENTICAL**: `s1_meta.csv`·`s2_meta_for_embed.csv`·`s2_embeddings.npy`(md5
+  5-run 전부 동일)·`s3_selected_model.txt`·`s6_trend_stats.csv` → 입력·임베딩 경로 변경은 정확히 no-op.
+- **클러스터링 이후는 비결정(#15)**: 동일 코드 2회(head vs head2, 단일스레드 포함)가 baseline vs HEAD
+  와 **동일한 11파일 발산**(n_topics 매 run 변동). 즉 교차-run byte diff 로는 코드 차이를 가릴 수 없어
+  s3↓ byte-identical 은 원천 불가; 등가성은 적대적 코드리뷰(#1/#2/#11/#12 no-op 확인)로 담보.
+
+**잔여:** #15 재현성(seed 근사·캐시 핀, 문서화). **C(실데이터 5590 + Claude)** 는 여전히 사용자
+`ANTHROPIC_API_KEY`·네트워크·시간 필요 — 미실행.
+
+---
+
 ## 문서 운영 원칙
 
 - 새 이슈 발견 시 **section 번호 매겨 append**

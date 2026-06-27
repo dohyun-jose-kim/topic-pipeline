@@ -221,6 +221,23 @@ T4-6 md export·T4-7 serve(optional), cosmetic(s5 요약 bullet·mpl 타이틀),
 
 ---
 
+## 3.0.4 — 실 env 전체 파이프라인 회귀 검증 (2026-06-27, 이슈 #13/#14, #15 문서화)
+
+py3.11 venv + 핀 스택 실설치(torch/bertopic/umap/hdbscan/sklearn). 600편 합성 코퍼스 + keywords +
+경량 임베딩으로 무키 end-to-end. 상세: `Docs/KNOWN_LIMITATIONS.md §9`.
+
+| 결과 | 이슈 | 커밋 | 내용 |
+|---|---|---|---|
+| **Run A 통과** (s1→s7 완주) | — | — | 실제 torch/bertopic 통합 동작 확인 |
+| CLI step 인자 없는 호출 실패 (HIGH) | #13 | `d6845c3` | `nargs='*'`+`choices` 가 빈 기본값 거부 → 전체실행/list-steps/init/serve 복구 |
+| 빈 trend_stats → s7 크래시 | #14 | `fb94b2e` | `_read_trend_stats` 가드 |
+| **Run B**: 결정적 산출물 byte-identical | — | — | s1_meta/s2_*/s3_selected/s6_trend baseline=HEAD; 클러스터링↓는 비결정(#15)이라 교차diff 불가 → 코드리뷰로 등가 담보 |
+| 클러스터링 run-to-run 비결정 (재현성) | #15 | 문서 | seed 고정·단일스레드에도 n_topics 변동(umap-learn 내재). KNOWN §9 |
+
+> 버전 `3.0.3`→**`3.0.4`**. pytest **110 passed** + 실 env Run A/B. C(실데이터 5590+Claude)는 사용자 키 필요.
+
+---
+
 ## 주의사항
 
 - **원본 파일 수정 금지**: `01~06`, `week_7/*` 는 참고만. 복사/재정리만 `90_CLI/src/` 에서.
