@@ -128,16 +128,21 @@ def run(cfg: dict) -> None:
               f"sil={metrics['silhouette']:.3f}, imb={metrics['imbalance']:.1f}, "
               f"min_count={metrics['min_count']}, outlier={metrics['outlier_ratio']:.2%} → {status}")
 
-    _save_sweep_artifacts(sweep_results, cutoff_cfg, sweep_dir, skip_sweep)
-
+    # 선택을 산출물 기록 전에 계산 → sweep_report/콘솔이 실제 tie_break·선택값을 반영(issue #2).
     survivors = [r["mts"] for r in sweep_results if r["passed"]]
+    tie = sweep_cfg.get("tie_break", "median_low")
+    selected_mts = None
+    if survivors:
+        selected_mts = grid[0] if skip_sweep else _select_mts(sweep_results, cluster_cfg)
+
+    _save_sweep_artifacts(sweep_results, cutoff_cfg, sweep_dir, skip_sweep, selected_mts, tie)
+
     if not survivors:
         table = _build_diagnostic_table(sweep_results)
         raise SweepFailedError(f"생존자 0명. sweep_report.md 참고.\n\n{table}")
 
-    selected_mts = grid[0] if skip_sweep else _select_mts(sweep_results, cluster_cfg)
-    print(f"\n[s3] 선택: min_topic_size={selected_mts} "
-          f"({'직행' if skip_sweep else f'생존자 {len(survivors)}개 중 median_low'})")
+    detail = "직행" if skip_sweep else f"생존자 {len(survivors)}개 중 {tie}"
+    print(f"\n[s3] 선택: min_topic_size={selected_mts} ({detail})")
 
     selected = next(r for r in sweep_results if r["mts"] == selected_mts)
 
@@ -309,7 +314,8 @@ def _check_cutoff(metrics: dict, cutoff: dict) -> tuple[bool, list[str]]:
 
 # ── 산출물 ────────────────────────────────────────────────────
 
-def _save_sweep_artifacts(results, cutoff, sweep_dir: Path, skip_sweep: bool):
+def _save_sweep_artifacts(results, cutoff, sweep_dir: Path, skip_sweep: bool,
+                          selected_mts=None, tie_break="median_low"):
     rows = []
     for r in results:
         m = r["metrics"]
@@ -329,23 +335,25 @@ def _save_sweep_artifacts(results, cutoff, sweep_dir: Path, skip_sweep: bool):
     _plot_sweep_line(results, cutoff, sweep_dir / "sweep_line.png")
     _plot_sweep_heatmap(results, sweep_dir / "sweep_heatmap.png")
 
+    report = _build_sweep_report(results, skip_sweep, selected_mts, tie_break)
+    (sweep_dir / "sweep_report.md").write_text(report, encoding="utf-8")
+    print(f"[s3] sweep 산출물 → {sweep_dir}")
+
+
+def _build_sweep_report(results, skip_sweep: bool, selected_mts, tie_break: str) -> str:
+    """sweep_report.md 본문. 선택값·tie_break 라벨은 run() 이 실제 사용한 값을 받아 기록(issue #2)."""
     survivors = [r["mts"] for r in results if r["passed"]]
-    lines = ["# Sweep Report\n"]
-    lines.append(f"- 그리드: `{[r['mts'] for r in results]}`")
+    lines = ["# Sweep Report\n", f"- 그리드: `{[r['mts'] for r in results]}`"]
     if skip_sweep:
-        lines.append(f"- 모드: **sweep 생략 (mts 단일값 직행)**")
+        lines.append("- 모드: **sweep 생략 (mts 단일값 직행)**")
     if survivors:
-        sel = median_low(survivors)
+        mode = "직행" if skip_sweep else tie_break
         lines.append(f"- 생존자: `{survivors}`")
-        lines.append(f"- **선택: min_topic_size = {sel}** ({'직행' if skip_sweep else 'median_low'})")
+        lines.append(f"- **선택: min_topic_size = {selected_mts}** ({mode})")
     else:
         lines.append("- 생존자: **없음 — 파이프라인 중단**")
-    lines.append("")
-    lines.append("## 전체 지표")
-    lines.append("")
-    lines.append(_build_diagnostic_table(results))
-    (sweep_dir / "sweep_report.md").write_text("\n".join(lines), encoding="utf-8")
-    print(f"[s3] sweep 산출물 → {sweep_dir}")
+    lines += ["", "## 전체 지표", "", _build_diagnostic_table(results)]
+    return "\n".join(lines)
 
 
 def _plot_sweep_line(results, cutoff, out_path):

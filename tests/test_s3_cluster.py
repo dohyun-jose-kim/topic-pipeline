@@ -27,3 +27,25 @@ def test_select_mts_target_closest():
 def test_select_mts_ignores_failed():
     sweep = [_rec(10, 5), _rec(20, 8, passed=False), _rec(30, 12)]
     assert s3_cluster._select_mts(sweep, {"sweep": {}}) == 10  # survivors [10,30]
+
+
+# ── _build_sweep_report tie_break 라벨 (issue #2) ──
+
+def _full_rec(mts, n_topics, passed=True):
+    return {"mts": mts, "passed": passed, "reasons": [],
+            "metrics": {"n_topics": n_topics, "silhouette": 0.3, "imbalance": 2.0,
+                        "min_count": 30, "outlier_ratio": 0.1}}
+
+
+def test_build_sweep_report_median_low_default():
+    results = [_full_rec(10, 5), _full_rec(20, 8), _full_rec(30, 12)]
+    md = s3_cluster._build_sweep_report(results, skip_sweep=False, selected_mts=20, tie_break="median_low")
+    assert "min_topic_size = 20** (median_low)" in md
+
+
+def test_build_sweep_report_target_tie_break():
+    # tie_break='target' 일 때 리포트가 'median_low' 가 아니라 실제 tie_break·선택값을 반영
+    results = [_full_rec(10, 5), _full_rec(20, 8), _full_rec(30, 12)]
+    md = s3_cluster._build_sweep_report(results, skip_sweep=False, selected_mts=30, tie_break="target")
+    assert "min_topic_size = 30** (target)" in md
+    assert "median_low" not in md
