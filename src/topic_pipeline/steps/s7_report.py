@@ -591,10 +591,11 @@ def _build_html(data: dict, umap_2d: np.ndarray, cfg: dict, fig_dir: Path, outpu
             if sweep_heatmap_png.exists() else ""
         )
 
+        tie_break = ((cfg.get("cluster") or {}).get("sweep") or {}).get("tie_break", "median_low")
         sweep_stub = f"""
 <p style="color:#666; font-size:0.92em;">
 min_topic_size sweep 결과 (PLAN-v2 §12). 각 그리드 값에서 BERTopic 을 학습,
-4지표 측정 후 cutoff 통과 생존자 중 median_low 로 선택. ★ 표시가 최종 선택값.
+4지표 측정 후 cutoff 통과 생존자 중 {tie_break} 로 선택. ★ 표시가 최종 선택값.
 </p>
 <table>
   <thead>
