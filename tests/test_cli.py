@@ -158,3 +158,22 @@ def test_serve_blocked_bypass_vectors():
 def test_serve_missing_dir_returns_1(tmp_path):
     # 디렉토리 없으면 서버 기동 없이 1 반환 (블로킹 X)
     assert cli._serve(tmp_path / "nope", 8123) == 1
+
+
+# ── argparse: step 없는 호출이 거부되지 않아야 함 (issue #13) ──
+
+def test_parser_accepts_empty_steps():
+    # nargs='*' 위치인자가 빈 기본값을 argparse choices 로 거부하면 안 됨 (모던 CPython 회귀)
+    args = cli.build_parser().parse_args([])
+    assert args.steps == []
+
+
+def test_main_list_steps_no_positional():
+    # --list-steps (위치인자 없음) 가 argparse 를 통과해 0 반환
+    assert cli.main(["--list-steps"]) == 0
+
+
+def test_main_invalid_step_errors(capsys):
+    # 잘못된 step 이름은 argparse 가 아니라 main() 이 명확히 거부
+    assert cli.main(["bogus-step"]) == 1
+    assert "알 수 없는 step" in capsys.readouterr().err

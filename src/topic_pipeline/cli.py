@@ -101,8 +101,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "steps",
         nargs="*",
-        choices=STEPS,
         metavar="STEP",
+        # choices=STEPS 는 쓰지 않는다 — argparse(nargs='*')가 빈 기본값 []을 choices 에
+        # 검증해 step 없는 호출을 전부 거부한다(모던 CPython). step 이름은 main()에서 검증.
         help=f"실행할 step(s). 비우면 전체. 선택: {', '.join(STEPS)}",
     )
     parser.add_argument(
@@ -445,6 +446,10 @@ def main(argv: list[str] | None = None) -> int:
     selected = _select_steps(args)
     if not selected:
         print("[error] 선택된 step 이 없습니다 (--from/--to 범위 확인).", file=sys.stderr)
+        return 1
+    invalid = [s for s in selected if s not in STEPS]
+    if invalid:
+        print(f"[error] 알 수 없는 step: {invalid} (가능: {', '.join(STEPS)})", file=sys.stderr)
         return 1
 
     cfg = _apply_overrides(_load_cfg(args.config), args)
