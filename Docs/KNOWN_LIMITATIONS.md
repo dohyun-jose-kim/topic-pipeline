@@ -180,11 +180,28 @@ ingest 어댑터, --init/--preset, --serve, Docker)을 다각도(10 finder→ver
 - **✅ #11 (MED) 연도 없는 코퍼스 빈 프레임 크래시** — source=dir 등 year='' → s6/s7 침묵 붕괴 →
   `convention.load_labeled_with_year` 통합 + 유효 연도 0건 시 안내 ValueError. (커밋 `02a34b4`)
 
-**미해결(문서化, issue #12):** provider=local/claude 의 relevance md 는 모델 출력 Topic 컬럼을
-검증 없이 기록 → 모델이 `Topic 5`/zero-pad 등 비-정수를 내면 `parse_relevance_order` 가 해당
-행을 침묵 drop → 정렬·색상 붕괴(invariant#3). **keyword 경로는 `int(...)` 로 안전.** local 이
-기존 claude 와 동일한 미검증 경로를 확장한 것이라 신규 갭은 아니나, 신뢰도 낮은 로컬 모델에서
-발생 확률↑. **후속:** relevance md 의 Topic 컬럼 bare-int 검증 + 드리프트 경고/로그(claude·local 공통).
+**✅ 해결됨 (3.0.3, →§8) #12:** provider=local/claude 의 relevance md 는 모델 출력 Topic 컬럼을
+검증 없이 기록 → 모델이 `Topic 5` 처럼 접두사를 붙이면 `parse_relevance_order` 가 해당 행을
+침묵 drop → 정렬·색상 붕괴(invariant#3). **keyword 경로는 `int(...)` 로 안전.** 3.0.3 에서 LLM
+경로 직후 `missing_topics_in_order` 로 누락 topic 을 검출해 명시적 경고(`_warn_on_topic_drift`).
+정상 bare-int 출력은 무변경. (집합 기준 best-effort — 자동 repair 는 후속.)
+
+---
+
+## 8. ver3.0.3 — 오픈 백로그 #1/#2/#12 해소 (2026-06-27)
+
+스코핑(병렬 deep-dive) → baby-step 구현 → 적대적 검증(4 에이전트, 전건 holds=true·기본 byte-identical
+경험적 확인) 워크플로로 남은 백로그를 모두 해결.
+
+- **✅ #1** `_validate_preconditions` 가 config override·fetch source 인식 (`beb0e49`). `report`/`timeseries`
+  의 `labeled_csv`/`relevance_md`/`keywords_csv`/`embeddings_npy` override 와 source(csv/jsonl/dir/arxiv)
+  입력을 알아 거짓 실패 제거. 검증 후속으로 `report.embeddings_npy` 추가(`0b255f7`).
+- **✅ #2** sweep_report/콘솔/s7 HTML 이 실제 `tie_break`·선택값 반영 (`bd2e825`, `90e7780`). 선택을 산출물
+  기록 전에 계산. 기본(`median_low`) 출력 byte-identical.
+- **✅ #12** LLM relevance Topic 드리프트 경고 (`afbcb75`, docstring `7b1a83c`). 위 §7 참조.
+
+**검증 한계(잔여):** #12 경고는 집합 기준 best-effort — 드리프트된 topic id 가 다른 행에 또 나오면 못
+잡는다(드묾). 자동 repair·rank/topic 중복 검출은 후속. 전체 파이프라인(torch/bertopic) 회귀는 실 env 필요.
 
 ---
 

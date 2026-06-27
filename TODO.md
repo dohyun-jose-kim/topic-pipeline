@@ -207,6 +207,20 @@ T4-6 md export·T4-7 serve(optional), cosmetic(s5 요약 bullet·mpl 타이틀),
 
 ---
 
+## 3.0.3 — 오픈 백로그 해소 (2026-06-27, 이슈 #1/#2/#12 Closed)
+
+스코핑(병렬) → baby-step 구현 → 적대적 검증(4 에이전트, 전건 holds=true) 워크플로. 상세: `Docs/KNOWN_LIMITATIONS.md §7~§8`.
+
+| 결함 | 이슈 | 커밋 | 내용 |
+|---|---|---|---|
+| validate override 거짓실패 | #1 | `beb0e49` (+`0b255f7`) | `_validate_preconditions` cfg-aware: override(labeled_csv/relevance_md/keywords_csv/embeddings_npy)·fetch source 인식 |
+| sweep tie_break 라벨 불일치 | #2 | `bd2e825` (+`90e7780`) | 선택을 산출물 기록 전 계산 → sweep_report/콘솔/s7 HTML 이 실제 tie_break 반영 |
+| relevance Topic 미검증 | #12 | `afbcb75` (+`7b1a83c`) | LLM 경로 드리프트 경고(`missing_topics_in_order`) — invariant#3 침묵 누락 방지 |
+
+> 버전 `3.0.2`→**`3.0.3`**. pytest **103 passed**. 기본 config byte-identical(검증 워크플로 경험적 확인). 전체 파이프라인 회귀는 실 env 필요.
+
+---
+
 ## 주의사항
 
 - **원본 파일 수정 금지**: `01~06`, `week_7/*` 는 참고만. 복사/재정리만 `90_CLI/src/` 에서.
