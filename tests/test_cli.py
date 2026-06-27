@@ -54,12 +54,13 @@ def test_select_steps_all():
 def test_validate_all_steps_ok_with_input(tmp_path):
     inp = tmp_path / "in.csv"
     inp.write_text("pmid\n1\n")
+    cfg = {"paths": {"input_pmid_csv": str(inp)}}
     # 전체 실행: 각 step 입력은 앞 step 이 생성 → input CSV 만 있으면 통과
-    assert cli._validate_preconditions(list(cli.STEPS), tmp_path, str(inp)) == []
+    assert cli._validate_preconditions(list(cli.STEPS), tmp_path, cfg) == []
 
 
 def test_validate_report_alone_missing(tmp_path):
-    missing = cli._validate_preconditions(["report"], tmp_path, None)
+    missing = cli._validate_preconditions(["report"], tmp_path, {})
     files = {f for _, f, _ in missing}
     assert "s2_embeddings.npy" in files
     assert "s5_labels.csv" in files
@@ -68,14 +69,57 @@ def test_validate_report_alone_missing(tmp_path):
 
 
 def test_validate_fetch_missing_input(tmp_path):
-    missing = cli._validate_preconditions(["fetch"], tmp_path, str(tmp_path / "nope.csv"))
+    cfg = {"paths": {"input_pmid_csv": str(tmp_path / "nope.csv")}}
+    missing = cli._validate_preconditions(["fetch"], tmp_path, cfg)
     assert any(f.endswith("nope.csv") for _, f, _ in missing)
 
 
 def test_validate_range_satisfied_by_earlier_selected(tmp_path):
     # embed→cluster 연속 실행: cluster 입력(s2_*)은 embed 가 만드므로, s1_meta.csv 만 있으면 통과
     (tmp_path / "s1_meta.csv").write_text("x")
-    assert cli._validate_preconditions(["embed", "cluster"], tmp_path, None) == []
+    assert cli._validate_preconditions(["embed", "cluster"], tmp_path, {}) == []
+
+
+# ── config override / fetch source 인식 (issue #1) ──
+
+def test_validate_report_with_labeled_csv_override(tmp_path):
+    # report.labeled_csv/relevance_md/keywords_csv 지정 시 convention 파일 거짓실패 안 남
+    for name in ("my_labels.csv", "rel.md", "kw.csv"):
+        (tmp_path / name).write_text("x")
+    (tmp_path / "s2_embeddings.npy").write_text("x")
+    (tmp_path / "s5_labels.csv").write_text("x")
+    cfg = {"report": {"labeled_csv": str(tmp_path / "my_labels.csv"),
+                      "relevance_md": str(tmp_path / "rel.md"),
+                      "keywords_csv": str(tmp_path / "kw.csv")}}
+    assert cli._validate_preconditions(["report"], tmp_path, cfg) == []
+
+
+def test_validate_report_override_missing_reports_override_path(tmp_path):
+    # override 경로가 없으면 convention 파일이 아니라 그 override 경로를 누락 보고
+    for name in ("s2_embeddings.npy", "s5_labels.csv", "s5_label-relevance.md",
+                 "s4_keywords_comparison.csv"):
+        (tmp_path / name).write_text("x")
+    cfg = {"report": {"labeled_csv": str(tmp_path / "nope.csv")}}
+    missing = cli._validate_preconditions(["report"], tmp_path, cfg)
+    paths = {f for _, f, _ in missing}
+    assert str(tmp_path / "nope.csv") in paths       # override 경로를 보고
+    assert "s2_meta_for_embed.csv" not in paths      # convention 파일은 보고 안 함
+    assert "s3_labels.csv" not in paths              # 같은 override 가 둘 다 대체
+
+
+def test_validate_fetch_csv_source_uses_input_csv(tmp_path):
+    # source=csv 면 input_pmid_csv 가 아니라 fetch.input_csv 존재를 확인
+    (tmp_path / "corpus.csv").write_text("text\nhi\n")
+    cfg = {"paths": {"input_pmid_csv": str(tmp_path / "absent.csv")},
+           "fetch": {"source": "csv", "input_csv": str(tmp_path / "corpus.csv")}}
+    assert cli._validate_preconditions(["fetch"], tmp_path, cfg) == []
+
+
+def test_validate_fetch_arxiv_no_local_input(tmp_path):
+    # source=arxiv 는 네트워크 입력 → 로컬 파일 검증 안 함
+    cfg = {"paths": {"input_pmid_csv": str(tmp_path / "absent.csv")},
+           "fetch": {"source": "arxiv", "arxiv_query": "cat:cs.CL"}}
+    assert cli._validate_preconditions(["fetch"], tmp_path, cfg) == []
 
 
 # ── serve (issue #7) ──

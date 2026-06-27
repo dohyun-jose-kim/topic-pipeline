@@ -360,24 +360,70 @@ def _print_steps() -> None:
         print(f"       produces: {prods}")
 
 
+# STEP_REQUIRES 의 convention 파일을 대체하는 step별 config override 키 (cfg[section][key]).
+# override 경로가 명시되면 그 경로 존재로 판정하고 convention 파일은 보지 않는다. (issue #1)
+_OVERRIDE_FOR: dict[str, dict[str, tuple[str, str]]] = {
+    "timeseries": {
+        "s2_meta_for_embed.csv": ("timeseries", "labeled_csv"),
+        "s3_labels.csv": ("timeseries", "labeled_csv"),
+        "s5_label-relevance.md": ("timeseries", "relevance_md"),
+    },
+    "report": {
+        "s2_meta_for_embed.csv": ("report", "labeled_csv"),
+        "s3_labels.csv": ("report", "labeled_csv"),
+        "s5_label-relevance.md": ("report", "relevance_md"),
+        "s4_keywords_comparison.csv": ("report", "keywords_csv"),
+    },
+}
+
+
+def _fetch_input_path(cfg: dict) -> str | None:
+    """fetch.source 별 로컬 입력 경로 (s1_fetch 어댑터와 동일 규칙). arxiv 는 네트워크라 None."""
+    paths = cfg.get("paths", {}) or {}
+    fetch = cfg.get("fetch", {}) or {}
+    default = paths.get("input_pmid_csv")
+    source = fetch.get("source", "pubmed")
+    if source == "csv":
+        return fetch.get("input_csv") or default
+    if source == "jsonl":
+        return fetch.get("input_jsonl") or fetch.get("input_csv") or default
+    if source == "dir":
+        return fetch.get("input_dir") or default
+    if source == "arxiv":
+        return None
+    return default  # pubmed / 기타
+
+
 def _validate_preconditions(
-    selected: list[str], output_dir: Path, input_pmid_csv: str | None
+    selected: list[str], output_dir: Path, cfg: dict
 ) -> list[tuple[str, str, str]]:
-    """선택 step 들을 순서대로 보며, 같은 run 의 앞 step 이 만들지 않는 선행 산출물이
-    output_dir 에 없으면 (step, 누락파일, 생성step) 수집. fetch 는 input CSV 존재만 확인.
-    heavy import 전에 호출되어 mid-step FileNotFoundError 대신 up-front 에러를 낸다."""
+    """선택 step 들을 순서대로 보며, 같은 run 의 앞 step 이 만들지 않고 config override 로도
+    충족되지 않는 선행 산출물이 없으면 (step, 누락경로, 생성step) 수집. fetch 는 source 별
+    입력 존재만 확인. heavy import 전에 호출되어 mid-step FileNotFoundError 대신 up-front 에러."""
     producer_of = {f: s for s, files in STEP_PRODUCES.items() for f in files}
     produced: set[str] = set()
     missing: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str]] = set()
     for step in selected:
+        overrides = _OVERRIDE_FOR.get(step, {})
         for req in STEP_REQUIRES.get(step, []):
             if req in produced:
                 continue
+            ov = overrides.get(req)
+            if ov:
+                path = (cfg.get(ov[0], {}) or {}).get(ov[1])
+                if path:  # override 명시 → 그 경로 존재로 판정 (convention 파일 무시)
+                    if not Path(path).exists() and (step, str(path)) not in seen:
+                        seen.add((step, str(path)))
+                        missing.append((step, str(path), "(config override)"))
+                    continue
             if not (output_dir / req).exists():
                 missing.append((step, req, producer_of.get(req, "?")))
         produced |= set(STEP_PRODUCES.get(step, []))
-    if "fetch" in selected and input_pmid_csv and not Path(input_pmid_csv).exists():
-        missing.append(("fetch", str(input_pmid_csv), "(입력 CSV)"))
+    if "fetch" in selected:
+        inp = _fetch_input_path(cfg)
+        if inp and not Path(inp).exists():
+            missing.append(("fetch", str(inp), "(입력)"))
     return missing
 
 
@@ -410,9 +456,7 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(f"log: {log_path}")
     logger.info(f"steps: {selected}")
 
-    missing = _validate_preconditions(
-        selected, output_dir, cfg.get("paths", {}).get("input_pmid_csv")
-    )
+    missing = _validate_preconditions(selected, output_dir, cfg)
     if missing:
         logger.error("사전 조건 미충족 — 필요한 선행 산출물이 없습니다:")
         for step, f, producer in missing:
