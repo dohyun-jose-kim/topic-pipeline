@@ -369,6 +369,7 @@ _OVERRIDE_FOR: dict[str, dict[str, tuple[str, str]]] = {
         "s5_label-relevance.md": ("timeseries", "relevance_md"),
     },
     "report": {
+        "s2_embeddings.npy": ("report", "embeddings_npy"),
         "s2_meta_for_embed.csv": ("report", "labeled_csv"),
         "s3_labels.csv": ("report", "labeled_csv"),
         "s5_label-relevance.md": ("report", "relevance_md"),

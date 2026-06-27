@@ -107,6 +107,16 @@ def test_validate_report_override_missing_reports_override_path(tmp_path):
     assert "s3_labels.csv" not in paths              # 같은 override 가 둘 다 대체
 
 
+def test_validate_report_embeddings_npy_override(tmp_path):
+    # report.embeddings_npy 지정 시 s2_embeddings.npy 거짓실패 안 남 (s7 가 실제로 이 키를 읽음)
+    emb = tmp_path / "custom.npy"; emb.write_text("x")
+    for name in ("s5_labels.csv", "s5_label-relevance.md", "s2_meta_for_embed.csv",
+                 "s3_labels.csv", "s4_keywords_comparison.csv"):
+        (tmp_path / name).write_text("x")
+    cfg = {"report": {"embeddings_npy": str(emb)}}
+    assert cli._validate_preconditions(["report"], tmp_path, cfg) == []
+
+
 def test_validate_fetch_csv_source_uses_input_csv(tmp_path):
     # source=csv 면 input_pmid_csv 가 아니라 fetch.input_csv 존재를 확인
     (tmp_path / "corpus.csv").write_text("text\nhi\n")
