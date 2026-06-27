@@ -22,9 +22,10 @@ def parse_relevance_order(md_path: Path) -> list[int]:
 def missing_topics_in_order(md_text: str, expected_topics) -> list[int]:
     """parse_relevance_order 가 md 에서 복원하는 topic 집합과 기대 집합을 비교, 누락 id 반환.
 
-    LLM 이 Topic 컬럼을 비-정수('Topic 5', zero-pad 등)로 내면 그 행이 정규식에 안 잡혀
-    침묵 drop → s6/s7 정렬·색상이 깨진다(invariant#3). 그 누락을 호출부에서 경고로
-    surface 하기 위한 검출기 (parse_relevance_order 와 동일 정규식 사용).
+    LLM 이 Topic 컬럼에 'Topic 5' 처럼 접두사를 붙이면 그 행이 정규식에 안 잡혀 침묵 drop
+    → s6/s7 정렬·색상이 깨진다(invariant#3). 그 누락을 호출부에서 경고로 surface 하기 위한
+    best-effort 검출기(집합 기준; parse_relevance_order 와 동일 정규식·복원 의미). 'Topic 5'
+    의 5 가 다른 행에 또 나오면 못 잡을 수 있다. ('05' 같은 zero-pad 는 \\d+ 로 정상 파싱 → 누락 아님.)
     """
     found = {int(topic) for _, topic in _ORDER_ROW.findall(md_text)}
     return sorted(t for t in {int(x) for x in expected_topics} if t not in found)
